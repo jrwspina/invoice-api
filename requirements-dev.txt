@@ -3,3 +3,6 @@ asyncpg==0.31.0
 ruff==0.15.7
 sqlalchemy==2.0.48
 pydantic-settings==2.13.1
+pwdlib[argon2]==0.3.0
+fastapi==0.135.2
+uvicorn[standard]==0.42.0
