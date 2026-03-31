@@ -1,16 +1,20 @@
 from datetime import datetime
 from decimal import Decimal
 from app.enums import InvoiceStatus
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
-class BaseUser(BaseModel):
+class Base(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BaseUser(Base):
     firstname: str
     lastname: str
     email: str
 
 
-class BaseClient(BaseModel):
+class BaseClient(Base):
     firstname: str
     lastname: str | None = None
     email: str
@@ -36,7 +40,7 @@ class UserUpdate(BaseUser):
     pass
 
 
-class UserPatch(BaseModel):
+class UserPatch(Base):
     firstname: str | None = None
     lastname: str | None = None
     email: str | None = None
@@ -48,6 +52,7 @@ class ClientRead(BaseClient):
 
 
 class ClientCreate(BaseClient):
+    user_id: int  # temporary
     pass
 
 
@@ -59,7 +64,7 @@ class ClientUpdate(BaseClient):
     pass
 
 
-class ClientPatch(BaseModel):
+class ClientPatch(Base):
     firstname: str | None = None
     lastname: str | None = None
     email: str | None = None
@@ -68,7 +73,7 @@ class ClientPatch(BaseModel):
     billing_address: str | None = None
 
 
-class BaseInvoice(BaseModel):
+class BaseInvoice(Base):
     issue_date: datetime
     due_date: datetime
     notes: str | None
@@ -94,14 +99,14 @@ class InvoiceUpdate(BaseInvoice):
     status: InvoiceStatus
 
 
-class InvoicePatch(BaseModel):
+class InvoicePatch(Base):
     status: InvoiceStatus | None = None
     issue_date: datetime | None = None
     due_date: datetime | None = None
     notes: str | None = None
 
 
-class BaseLineItem(BaseModel):
+class BaseLineItem(Base):
     description: str
     quantity: Decimal
     unit_price: Decimal
@@ -116,7 +121,7 @@ class LineItemRead(BaseLineItem):
     invoice_id: int
 
 
-class BasePayment(BaseModel):
+class BasePayment(Base):
     paid_at: datetime
     value: Decimal
 
