@@ -1,0 +1,31 @@
+from typing import Sequence
+from app.models import Invoice, LineItem
+from app.schemas import LineItemCreate
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+
+async def get_lineitems(invoice: Invoice, session: AsyncSession) -> Sequence[LineItem]:
+    stmt = select(LineItem).where(LineItem.invoice_id == invoice.id)
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_lineitem(lineitem_id: int, session: AsyncSession) -> LineItem | None:
+    return await session.get(LineItem, lineitem_id)
+
+
+async def create_lineitem(
+    invoice: Invoice, lineitem: LineItemCreate, session: AsyncSession
+) -> LineItem:
+    db_lineitem = LineItem(**lineitem.model_dump())
+    db_lineitem.invoice_id = invoice.id
+    session.add(db_lineitem)
+    await session.commit()
+    await session.refresh(db_lineitem)
+    return db_lineitem
+
+
+async def delete_lineitem(lineitem: LineItem, session: AsyncSession):
+    await session.delete(lineitem)
+    await session.commit()
