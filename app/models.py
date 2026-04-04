@@ -1,14 +1,18 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from sqlalchemy import ForeignKey, Numeric, func
+from sqlalchemy import DateTime, ForeignKey, Numeric, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from app.enums import InvoiceStatus
 
 
 class Base(DeclarativeBase):
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[Optional[datetime]] = mapped_column(onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )
 
 
 class User(Base):
@@ -55,8 +59,8 @@ class Invoice(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     status: Mapped[InvoiceStatus] = mapped_column(default=InvoiceStatus.DRAFT)
-    issue_date: Mapped[datetime]
-    due_date: Mapped[datetime]
+    issue_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    due_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     notes: Mapped[Optional[str]]
 
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
@@ -92,5 +96,5 @@ class Payment(Base):
     invoice_id: Mapped[int] = mapped_column(ForeignKey("invoice.id"))
     invoice: Mapped["Invoice"] = relationship(back_populates="payments")
 
-    paid_at: Mapped[datetime]
+    paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     value: Mapped[Decimal] = mapped_column(Numeric(15, 2))
