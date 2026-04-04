@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -64,3 +64,4 @@ async def delete_lineitem(
         )
 
     await db_delete_lineitem(lineitem, session)
+    return Response(status_code=204)

@@ -1,18 +1,40 @@
+from decimal import Decimal
 from typing import Sequence
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.models import Invoice
-from app.schemas import InvoiceCreate, InvoicePatch, InvoiceUpdate
+from app.models import Invoice, LineItem
+from app.schemas import InvoiceCreate, InvoicePatch, InvoiceRead, InvoiceUpdate
+
+
+def calculate_total(invoice: Invoice) -> Decimal:
+    return sum(
+        item.unit_price * item.quantity for item in invoice.lineitems
+    ) or Decimal(0)
+
+
+def to_invoice_read(invoice: Invoice) -> InvoiceRead:
+    return InvoiceRead.model_validate(invoice).model_copy(
+        update={"total": calculate_total(invoice)}
+    )
 
 
 async def get_invoices(session: AsyncSession) -> Sequence[Invoice]:
-    result = await session.execute(select(Invoice))
+
+    stmt = select(Invoice).options(selectinload(Invoice.lineitems))
+    result = await session.execute(stmt)
     return result.scalars().all()
 
 
 async def get_invoice(invoice_id: int, session: AsyncSession) -> Invoice | None:
-    return await session.get(Invoice, invoice_id)
+    stmt = (
+        select(Invoice)
+        .options(selectinload(Invoice.lineitems))
+        .where(Invoice.id == invoice_id)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
 
 
 async def create_invoice(invoice: InvoiceCreate, session: AsyncSession) -> Invoice:
@@ -21,7 +43,10 @@ async def create_invoice(invoice: InvoiceCreate, session: AsyncSession) -> Invoi
     session.add(db_invoice)
     await session.commit()
     await session.refresh(db_invoice)
-    return db_invoice
+
+    result = await get_invoice(db_invoice.id, session)
+    assert result is not None
+    return result
 
 
 async def update_invoice(
@@ -34,7 +59,10 @@ async def update_invoice(
 
     await session.commit()
     await session.refresh(invoice)
-    return invoice
+
+    result = await get_invoice(invoice.id, session)
+    assert result is not None
+    return result
 
 
 async def patch_invoice(
@@ -47,7 +75,10 @@ async def patch_invoice(
 
     await session.commit()
     await session.refresh(invoice)
-    return invoice
+
+    result = await get_invoice(invoice.id, session)
+    assert result is not None
+    return result
 
 
 async def delete_invoice(invoice: Invoice, session: AsyncSession):
