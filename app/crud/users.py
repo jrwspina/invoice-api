@@ -4,7 +4,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User, Client
 from app.schemas import UserCreate, UserPatch, UserUpdate
-from app.security import get_password_hash
+from app.security import get_password_hash, verify_password, DUMMY_HASH
+
+
+async def authenticate_user(
+    username: str,
+    password: str,
+    session: AsyncSession,
+) -> User | None:
+    user = await get_user_by_email(username, session)
+
+    if not user:
+        verify_password(password, DUMMY_HASH)
+        return None
+    if not verify_password(password, user.password_hash):
+        return None
+    return user
 
 
 async def get_users(session: AsyncSession) -> Sequence[User]:
@@ -14,6 +29,11 @@ async def get_users(session: AsyncSession) -> Sequence[User]:
 
 async def get_user(user_id: int, session: AsyncSession) -> User | None:
     return await session.get(User, user_id)
+
+
+async def get_user_by_email(user_email: str, session: AsyncSession) -> User | None:
+    result = await session.execute(select(User).where(User.email == user_email))
+    return result.scalar_one_or_none()
 
 
 async def create_user(user: UserCreate, session: AsyncSession) -> User:

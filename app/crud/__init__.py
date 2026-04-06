@@ -1,6 +1,7 @@
 from app.crud.users import (
     get_users,
     get_user,
+    get_user_by_email,
     create_user,
     update_user,
     patch_user,
