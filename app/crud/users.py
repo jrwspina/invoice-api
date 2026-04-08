@@ -2,7 +2,7 @@ from typing import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import User, Client
+from app.models import User
 from app.schemas import UserCreate, UserPatch, UserUpdate
 from app.security import get_password_hash, verify_password, DUMMY_HASH
 
@@ -69,8 +69,3 @@ async def patch_user(user: User, data: UserPatch, session: AsyncSession) -> User
 async def delete_user(user: User, session: AsyncSession):
     await session.delete(user)
     await session.commit()
-
-
-async def get_user_clients(user_id: int, session: AsyncSession) -> Sequence[Client]:
-    result = await session.execute(select(Client).where(Client.user_id == user_id))
-    return result.scalars().all()

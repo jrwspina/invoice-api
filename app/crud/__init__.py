@@ -6,12 +6,12 @@ from app.crud.users import (
     update_user,
     patch_user,
     delete_user,
-    get_user_clients,
 )
 
 from app.crud.clients import (
     get_clients,
     get_client,
+    get_user_clients,
     create_client,
     update_client,
     patch_client,

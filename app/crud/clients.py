@@ -6,6 +6,11 @@ from app.models import Client
 from app.schemas import ClientCreate, ClientUpdate, ClientPatch
 
 
+async def get_user_clients(user_id: int, session: AsyncSession) -> Sequence[Client]:
+    result = await session.execute(select(Client).where(Client.user_id == user_id))
+    return result.scalars().all()
+
+
 async def get_clients(session: AsyncSession) -> Sequence[Client]:
     result = await session.execute(select(Client))
     return result.scalars().all()
@@ -15,8 +20,11 @@ async def get_client(client_id: int, session: AsyncSession) -> Client | None:
     return await session.get(Client, client_id)
 
 
-async def create_client(client: ClientCreate, session: AsyncSession) -> Client:
+async def create_client(
+    client: ClientCreate, user_id: int, session: AsyncSession
+) -> Client:
     db_client = Client(**client.model_dump())
+    db_client.user_id = user_id
     session.add(db_client)
     await session.commit()
     await session.refresh(db_client)

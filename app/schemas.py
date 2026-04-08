@@ -61,7 +61,7 @@ class ClientRead(BaseClient):
 
 
 class ClientCreate(BaseClient):
-    user_id: int  # temporary
+    pass
 
 
 class ClientReadDetail(ClientRead):
@@ -102,7 +102,6 @@ class InvoiceReadDetail(InvoiceRead):
 
 class InvoiceCreate(BaseInvoice):
     client_id: int
-    user_id: int  # temporary
 
 
 class InvoiceUpdate(BaseInvoice):

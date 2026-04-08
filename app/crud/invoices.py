@@ -20,9 +20,13 @@ def to_invoice_read(invoice: Invoice) -> InvoiceRead:
     )
 
 
-async def get_invoices(session: AsyncSession) -> Sequence[Invoice]:
+async def get_invoices(user_id: int, session: AsyncSession) -> Sequence[Invoice]:
 
-    stmt = select(Invoice).options(selectinload(Invoice.lineitems))
+    stmt = (
+        select(Invoice)
+        .options(selectinload(Invoice.lineitems))
+        .where(Invoice.user_id == user_id)
+    )
     result = await session.execute(stmt)
     return result.scalars().all()
 
@@ -37,8 +41,11 @@ async def get_invoice(invoice_id: int, session: AsyncSession) -> Invoice | None:
     return result.scalar_one_or_none()
 
 
-async def create_invoice(invoice: InvoiceCreate, session: AsyncSession) -> Invoice:
+async def create_invoice(
+    invoice: InvoiceCreate, user_id: int, session: AsyncSession
+) -> Invoice:
     db_invoice = Invoice(**invoice.model_dump())
+    db_invoice.user_id = user_id
 
     session.add(db_invoice)
     await session.commit()
