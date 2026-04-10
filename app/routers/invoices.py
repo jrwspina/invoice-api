@@ -11,6 +11,7 @@ from app.crud import (
     delete_invoice as db_delete_invoice,
     get_client as db_get_client,
     to_invoice_read,
+    send_drafted_invoice as db_send_drafted_invoice,
 )
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -69,6 +70,37 @@ async def create_invoice(
     result = await db_create_invoice(invoice, user.id, session)
 
     return to_invoice_read(result)
+
+
+@router.post("/{invoice_id}/send", response_model=InvoiceRead)
+async def send_drafted_invoice(
+    invoice_id: int,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    invoice = await db_get_invoice(invoice_id, session)
+
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    if invoice.user_id != user.id:
+        raise HTTPException(status_code=403)
+
+    client = await db_get_client(invoice.client_id, session)
+
+    if not client:
+        raise HTTPException(status_code=400, detail="Invoice has no client")
+
+    if not client.billing_address:
+        raise HTTPException(status_code=400, detail="Client has no billing address")
+
+    sent = await db_send_drafted_invoice(invoice, session)
+
+    if not sent:
+        raise HTTPException(status_code=400, detail="Invoice not in draft status")
+
+    await session.refresh(invoice)
+    return to_invoice_read(invoice)
 
 
 @router.put("/{invoice_id}", response_model=InvoiceRead)

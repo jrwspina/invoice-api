@@ -93,6 +93,7 @@ class InvoiceRead(BaseInvoice):
     client_id: int
     status: InvoiceStatus
     total: Decimal = Decimal(0)
+    total_paid: Decimal = Decimal(0)
 
 
 class InvoiceReadDetail(InvoiceRead):

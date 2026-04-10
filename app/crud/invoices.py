@@ -1,10 +1,12 @@
 from decimal import Decimal
 from typing import Sequence
-from sqlalchemy import func, select
+from app.crud import payments
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models import Invoice, LineItem
+from app.enums import InvoiceStatus
+from app.models import Invoice, Payment
 from app.schemas import InvoiceCreate, InvoicePatch, InvoiceRead, InvoiceUpdate
 
 
@@ -14,17 +16,55 @@ def calculate_total(invoice: Invoice) -> Decimal:
     ) or Decimal(0)
 
 
+def calculate_total_paid(invoice: Invoice) -> Decimal:
+    return sum(payment.value for payment in invoice.payments) or Decimal(0)
+
+
 def to_invoice_read(invoice: Invoice) -> InvoiceRead:
     return InvoiceRead.model_validate(invoice).model_copy(
-        update={"total": calculate_total(invoice)}
+        update={
+            "total": calculate_total(invoice),
+            "total_paid": calculate_total_paid(invoice),
+        }
     )
+
+
+async def send_drafted_invoice(invoice: Invoice, session: AsyncSession) -> bool:
+    if invoice.status != InvoiceStatus.DRAFT:
+        return False
+
+    invoice.status = InvoiceStatus.SENT
+    await session.commit()
+    return True
+
+
+async def update_invoice_status(invoice_id: int, session: AsyncSession):
+    invoice = await get_invoice(invoice_id, session)
+    assert invoice is not None
+
+    total = calculate_total(invoice)
+
+    stmt = select(Payment).where(Payment.invoice_id == invoice.id)
+    payments = (await session.execute(stmt)).scalars().all()
+    total_paid = sum(p.value for p in payments)
+
+    if total_paid == 0:
+        if invoice.status in [InvoiceStatus.PAID, InvoiceStatus.PARTIALLY_PAID]:
+            invoice.status = InvoiceStatus.SENT
+        else:
+            return
+    elif total_paid < total:
+        invoice.status = InvoiceStatus.PARTIALLY_PAID
+
+    elif total_paid >= total:
+        invoice.status = InvoiceStatus.PAID
 
 
 async def get_invoices(user_id: int, session: AsyncSession) -> Sequence[Invoice]:
 
     stmt = (
         select(Invoice)
-        .options(selectinload(Invoice.lineitems))
+        .options(selectinload(Invoice.lineitems), selectinload(Invoice.payments))
         .where(Invoice.user_id == user_id)
     )
     result = await session.execute(stmt)
@@ -34,7 +74,7 @@ async def get_invoices(user_id: int, session: AsyncSession) -> Sequence[Invoice]
 async def get_invoice(invoice_id: int, session: AsyncSession) -> Invoice | None:
     stmt = (
         select(Invoice)
-        .options(selectinload(Invoice.lineitems))
+        .options(selectinload(Invoice.lineitems), selectinload(Invoice.payments))
         .where(Invoice.id == invoice_id)
     )
     result = await session.execute(stmt)
