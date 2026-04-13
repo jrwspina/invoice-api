@@ -81,6 +81,8 @@ async def create_payment(
 
     payment = await db_create_payment(invoice_id, payload, session)
 
+    await session.flush()
+
     await db_update_invoice_status(invoice_id, session)
 
     await session.commit()
@@ -109,6 +111,8 @@ async def delete_payment(
         raise HTTPException(status_code=403)
 
     await db_delete_payment(payment, session)
+
+    await session.flush()
 
     await db_update_invoice_status(invoice.id, session)
 

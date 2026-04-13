@@ -1,6 +1,5 @@
 from decimal import Decimal
 from typing import Sequence
-from app.crud import payments
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
