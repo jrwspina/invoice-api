@@ -23,7 +23,21 @@ services:
       - db
     environment:
       - REDIS_URL=redis://redis:6379/0
-    
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    volumes:
+      - mailpit-data:/data
+    ports:
+      - 8025:8025
+      - 1025:1025
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+        
 volumes:
   db-data:
   redis-data:
+  mailpit-data:

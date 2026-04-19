@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,7 +8,15 @@ class Settings(BaseSettings):
     postgres_db: str
     postgres_port: int
     secret_key: str
+
     redis_url: str
+
+    mail_server: str
+    mail_port: int
+
+    email_user: Optional[str] = None
+    email_password: Optional[str] = None
+    email_from: str
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
