@@ -73,7 +73,12 @@ async def get_invoices(user_id: int, session: AsyncSession) -> Sequence[Invoice]
 async def get_invoice(invoice_id: int, session: AsyncSession) -> Invoice | None:
     stmt = (
         select(Invoice)
-        .options(selectinload(Invoice.lineitems), selectinload(Invoice.payments))
+        .options(
+            selectinload(Invoice.lineitems),
+            selectinload(Invoice.payments),
+            selectinload(Invoice.client),
+            selectinload(Invoice.user),
+        )
         .where(Invoice.id == invoice_id)
     )
     result = await session.execute(stmt)

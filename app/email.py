@@ -12,7 +12,7 @@ def send_email(to_addr: str, subject: str, body: str):
     msg.set_content(body)
 
     with SMTP(settings.mail_server, settings.mail_port) as smtp:
-        smtp.starttls()
+        # smtp.starttls()
         if settings.email_user and settings.email_password:
             smtp.login(settings.email_user, settings.email_password)
         smtp.send_message(msg)

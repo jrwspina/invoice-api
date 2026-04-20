@@ -23,6 +23,8 @@ services:
       - db
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_URL=postgresql+asyncpg://admin:password@db:5432/testedb
+      - MAIL_SERVER=mailpit
   mailpit:
     image: axllent/mailpit
     container_name: mailpit

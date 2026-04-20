@@ -1,3 +1,4 @@
+from app.tasks import send_invoice_email
 from fastapi import APIRouter, Depends, Response, HTTPException
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -100,6 +101,9 @@ async def send_drafted_invoice(
         raise HTTPException(status_code=400, detail="Invoice not in draft status")
 
     await session.refresh(invoice)
+
+    send_invoice_email.delay(invoice.id)
+
     return to_invoice_read(invoice)
 
 

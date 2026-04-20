@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     postgres_password: str
     postgres_db: str
     postgres_port: int
+    postgres_url: str
+
     secret_key: str
 
     redis_url: str
