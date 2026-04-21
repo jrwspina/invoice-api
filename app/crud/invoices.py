@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Sequence
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -26,6 +27,33 @@ def to_invoice_read(invoice: Invoice) -> InvoiceRead:
             "total_paid": calculate_total_paid(invoice),
         }
     )
+
+
+async def get_overdue_invoices(session: AsyncSession) -> Sequence[Invoice]:
+    c1 = or_(
+        Invoice.status == InvoiceStatus.PARTIALLY_PAID,
+        Invoice.status == InvoiceStatus.SENT,
+    )
+    c2 = Invoice.due_date < datetime.now(timezone.utc)
+
+    stmt = (
+        select(Invoice)
+        .options(
+            selectinload(Invoice.lineitems),
+            selectinload(Invoice.payments),
+            selectinload(Invoice.client),
+            selectinload(Invoice.user),
+        )
+        .where(c1, c2)
+    )
+
+    result = await session.execute(stmt)
+
+    return result.scalars().all()
+
+
+async def update_overdue_invoice(invoice: Invoice, session: AsyncSession):
+    invoice.status = InvoiceStatus.OVERDUE
 
 
 async def send_drafted_invoice(invoice: Invoice, session: AsyncSession) -> bool:

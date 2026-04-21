@@ -23,7 +23,17 @@ services:
       - db
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - POSTGRES_URL=postgresql+asyncpg://admin:password@db:5432/testedb
+      - POSTGRES_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - MAIL_SERVER=mailpit
+  beat:
+    build: .
+    command: ["celery", "-A", "app.celery", "beat", "--loglevel=INFO"]
+    depends_on:
+      - redis
+      - db
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - MAIL_SERVER=mailpit
   mailpit:
     image: axllent/mailpit
