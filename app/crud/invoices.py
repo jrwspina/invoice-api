@@ -29,6 +29,10 @@ def to_invoice_read(invoice: Invoice) -> InvoiceRead:
     )
 
 
+def update_reminder_sent_invoice(invoice: Invoice):
+    invoice.reminder_sent_at = datetime.now(timezone.utc)
+
+
 async def get_overdue_invoices(session: AsyncSession) -> Sequence[Invoice]:
     c1 = or_(
         Invoice.status == InvoiceStatus.PARTIALLY_PAID,

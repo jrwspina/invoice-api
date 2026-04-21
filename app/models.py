@@ -69,6 +69,10 @@ class Invoice(Base):
     client_id: Mapped[int] = mapped_column(ForeignKey("client.id"))
     client: Mapped["Client"] = relationship(back_populates="invoices")
 
+    reminder_sent_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True)
+    )
+
     lineitems: Mapped[list["LineItem"]] = relationship(
         back_populates="invoice", cascade="all, delete-orphan"
     )

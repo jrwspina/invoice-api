@@ -1,18 +1,18 @@
 import asyncio
-from decimal import Decimal
-from app.models import Invoice
+
 from celery.signals import worker_process_init
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.celery import app
-from app.crud.invoices import (
+from app.crud import (
     calculate_total as db_calculate_total,
     get_invoice as db_get_invoice,
     get_overdue_invoices as db_get_overdue_invoices,
     update_overdue_invoice as db_update_overdue_invoice,
+    update_reminder_sent_invoice as db_update_reminder_sent_invoice,
 )
-from app.email import send_email
+from app.email import build_invoice_email_body, send_email, send_overdue_invoice_email
 from app.settings import settings
 
 task_session_factory = None
@@ -37,29 +37,11 @@ async def update_overdue_invoices():
         if invoices:
             for invoice in invoices:
                 await db_update_overdue_invoice(invoice, session)
+                if not invoice.reminder_sent_at:
+                    send_overdue_invoice_email(invoice)
+                    db_update_reminder_sent_invoice(invoice)
 
             await session.commit()
-
-
-def build_invoice_email_body(
-    invoice: Invoice,
-    invoice_total: Decimal = Decimal(0),
-) -> str:
-    invoice_info = f"""
-    Invoice #{invoice.id}
-    Total: {invoice_total}
-    Items:
-    """
-    items = []
-    for li in invoice.lineitems:
-        item = f"- {li.description} | Quantity: {li.quantity} | Unit Price: {li.unit_price} | Relative Total: {li.unit_price*li.quantity}"
-        items.append(item)
-
-    body = invoice_info
-    for item in items:
-        body += f"\n{item}"
-
-    return body
 
 
 @app.task()

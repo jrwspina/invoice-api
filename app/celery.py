@@ -17,5 +17,6 @@ app.conf.beat_schedule = {
     "check-overdue-invoices-daily": {
         "task": "app.tasks.check_overdue_invoices",
         "schedule": crontab(hour=0, minute=0),
+        # "schedule": crontab(minute="*/1"),
     }
 }
