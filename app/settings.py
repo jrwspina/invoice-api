@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     email_password: Optional[str] = None
     email_from: str
 
+    test_postgres_url: str
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
