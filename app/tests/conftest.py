@@ -1,38 +1,45 @@
 import pytest
 
-from alembic import command
-from alembic.config import Config
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from app.database import get_db
 from app.main import app
-from app.models import User
+from app.models import Base, User
 from app.security import get_password_hash
 from app.settings import settings
 
-engine = create_async_engine(f"{settings.test_postgres_url}")
-async_session = async_sessionmaker(engine)
+
+@pytest.fixture(scope="session")
+async def db_engine():
+    engine = create_async_engine(settings.test_postgres_url)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+    yield engine
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
 
 
-async def get_test_db() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session() as session:
-        yield session
-
-
-@pytest.fixture(scope="session", autouse=True)
-async def setup_db():
-    alembic_cfg = Config("alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", settings.test_postgres_url)
-
-    command.upgrade(alembic_cfg, "head")
-    yield
-    command.downgrade(alembic_cfg, "base")
+@pytest.fixture(scope="session")
+def db_session_factory(db_engine):
+    return async_sessionmaker(db_engine)
 
 
 @pytest.fixture
-def override_db():
+async def session(db_session_factory):
+    async with db_session_factory() as session:
+        yield session
+
+
+@pytest.fixture
+def override_db(db_session_factory):
+    async def get_test_db() -> AsyncGenerator[AsyncSession, None]:
+        async with db_session_factory() as session:
+            yield session
+
     app.dependency_overrides[get_db] = get_test_db
     yield
     app.dependency_overrides.clear()
@@ -40,14 +47,8 @@ def override_db():
 
 @pytest.fixture
 async def client(override_db):
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app), base_url="http://test") as ac:
         yield ac
-
-
-@pytest.fixture
-async def session():
-    async with async_session() as session:
-        yield session
 
 
 @pytest.fixture

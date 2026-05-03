@@ -9,6 +9,16 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - db-data:/var/lib/postgresql/data
+  test-db:
+    image: postgres:17
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - test-db-data:/var/lib/postgresql/data
   redis:
     image: redis:8
     ports: 
@@ -51,5 +61,6 @@ services:
         
 volumes:
   db-data:
+  test-db-data:
   redis-data:
   mailpit-data:
