@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from typing import Annotated
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud import (
@@ -12,7 +13,6 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import User
 from app.schemas import UserCreate, UserPatch, UserRead, UserUpdate
-
 
 router = APIRouter(
     prefix="/users",
@@ -27,11 +27,18 @@ async def get_user_me(
     return current_user
 
 
-@router.post("/", response_model=UserRead)
+@router.post("/", response_model=UserRead, status_code=201)
 async def create_user(
     user: UserCreate, session: Annotated[AsyncSession, Depends(get_db)]
 ):
-    return await db_create_user(user, session)
+    try:
+        db_user = await db_create_user(user, session)
+        await session.commit()
+        await session.refresh(db_user)
+        return db_user
+    except IntegrityError:
+        await session.rollback()
+        raise HTTPException(status_code=409, detail="Email already registered")
 
 
 @router.put("/", response_model=UserRead)
