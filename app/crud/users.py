@@ -40,8 +40,6 @@ async def create_user(user: UserCreate, session: AsyncSession) -> User:
     db_user = User(**user.model_dump(exclude={"password"}))
     db_user.password_hash = get_password_hash(user.password)
     session.add(db_user)
-    await session.commit()
-    await session.refresh(db_user)
     return db_user
 
 

@@ -136,6 +136,8 @@ async def test_delete_user_removes_user_and_subsequent_requests_return_401_or_40
     response = await client.delete("/users/", headers=auth_headers)
     assert response.status_code == 204
 
+    session.expire_all()
+
     result = await session.get(User, user_id)
     assert result is None
 

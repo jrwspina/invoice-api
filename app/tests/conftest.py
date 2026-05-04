@@ -63,8 +63,11 @@ async def sample_user(session):
     await session.commit()
     await session.refresh(user)
     yield user
-    await session.delete(user)
-    await session.commit()
+    try:
+        await session.delete(user)
+        await session.commit()
+    except Exception:
+        await session.rollback()
 
 
 @pytest.fixture
