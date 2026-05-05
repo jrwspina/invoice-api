@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 from app.database import get_db
 from app.main import app
-from app.models import Base, User
+from app.models import Base, Client, User
 from app.security import get_password_hash
 from app.settings import settings
 
@@ -52,37 +52,77 @@ async def client(override_db):
 
 
 @pytest.fixture
-async def sample_user(session):
-    user = User(
-        firstname="name",
-        lastname="lastname",
-        email="test@test.com",
-        password_hash=get_password_hash("password"),
-    )
-    session.add(user)
-    await session.commit()
-    await session.refresh(user)
-    yield user
-    try:
-        await session.delete(user)
+async def make_user(session: AsyncSession):
+    users = []
+    counter = 0
+
+    async def _make_user(**kwargs):
+        nonlocal counter
+        counter += 1
+        data = {
+            "firstname": "firstname",
+            "lastname": "lastname",
+            "email": f"user{counter}@test.com",
+            "password_hash": get_password_hash("password"),
+        }
+        data.update(kwargs)
+        user = User(**data)
+        session.add(user)
         await session.commit()
-    except Exception:
-        await session.rollback()
+        await session.refresh(user)
+        users.append(user)
+        return user
+
+    yield _make_user
+    for user in users:
+        try:
+            await session.delete(user)
+            await session.commit()
+        except Exception:
+            await session.rollback()
 
 
 @pytest.fixture
-async def auth_token(client, sample_user):
-    response = await client.post(
-        "auth/token",
-        data={
-            "username": sample_user.email,
-            "password": "password",
-        },
-    )
+async def make_client(session: AsyncSession):
+    clients = []
+    counter = 0
 
-    return response.json()["access_token"]
+    async def _make_client(user: User, **kwargs):
+        nonlocal counter
+        counter += 1
+        data = {
+            "firstname": "firstname",
+            "lastname": "lastname",
+            "email": f"client{counter}@test.com",
+        }
+        data.update(kwargs)
+        client = Client(**data, user_id=user.id)
+        session.add(client)
+        await session.commit()
+        await session.refresh(client)
+        clients.append(client)
+        return client
+
+    yield _make_client
+    for client in clients:
+        try:
+            await session.delete(client)
+            await session.commit()
+        except Exception:
+            await session.rollback()
 
 
 @pytest.fixture
-async def auth_headers(auth_token):
-    return {"Authorization": f"Bearer {auth_token}"}
+async def make_auth_headers(client: AsyncClient):
+    async def _make_auth_headers(user: User):
+        response = await client.post(
+            "auth/token",
+            data={
+                "username": user.email,
+                "password": "password",
+            },
+        )
+        token = response.json()["access_token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return _make_auth_headers

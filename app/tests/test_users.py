@@ -7,7 +7,7 @@ async def test_create_new_user_returns_201_and_user_data(client):
         json={
             "firstname": "name",
             "lastname": "lastname",
-            "email": "test@email.com",
+            "email": "user@user.com",
             "password": "password",
         },
     )
@@ -23,13 +23,15 @@ async def test_create_new_user_returns_201_and_user_data(client):
 
     assert response_data["firstname"] == "name"
     assert response_data["lastname"] == "lastname"
-    assert response_data["email"] == "test@email.com"
+    assert response_data["email"] == "user@user.com"
 
 
 async def test_create_user_with_duplicate_email_returns_error(
     client,
-    sample_user,
+    make_user,
 ):
+    sample_user = await make_user()
+
     response = await client.post(
         "/users/",
         json={
@@ -45,9 +47,13 @@ async def test_create_user_with_duplicate_email_returns_error(
 
 
 async def test_get_current_user_returns_authenticated_user_data(
-    auth_headers,
     client,
+    make_auth_headers,
+    make_user,
 ):
+    sample_user = await make_user()
+    auth_headers = await make_auth_headers(sample_user)
+
     response = await client.get(
         "/users/me",
         headers=auth_headers,
@@ -59,9 +65,9 @@ async def test_get_current_user_returns_authenticated_user_data(
     assert "id" in response_data
     assert response_data["id"] is not None
     assert "password" not in response_data
-    assert response_data["firstname"] == "name"
-    assert response_data["lastname"] == "lastname"
-    assert response_data["email"] == "test@test.com"
+    assert response_data["firstname"] == sample_user.firstname
+    assert response_data["lastname"] == sample_user.lastname
+    assert response_data["email"] == sample_user.email
 
 
 async def test_get_current_user_without_auth_returns_401(client):
@@ -71,9 +77,11 @@ async def test_get_current_user_without_auth_returns_401(client):
 
 
 async def test_update_user_replaces_fields_and_returns_updated_user(
-    auth_headers,
-    client,
+    client, make_user, make_auth_headers
 ):
+    sample_user = await make_user()
+    auth_headers = await make_auth_headers(sample_user)
+
     new_data = {
         "firstname": "new name",
         "lastname": "new lastname",
@@ -99,9 +107,13 @@ async def test_update_user_replaces_fields_and_returns_updated_user(
 
 
 async def test_patch_user_updates_only_specified_fields(
-    auth_headers,
     client,
+    make_user,
+    make_auth_headers,
 ):
+    sample_user = await make_user()
+    auth_headers = await make_auth_headers(sample_user)
+
     new_data = {
         "firstname": "new name",
         "lastname": "new lastname",
@@ -122,15 +134,17 @@ async def test_patch_user_updates_only_specified_fields(
     assert "password" not in response_data
     assert response_data["firstname"] == "new name"
     assert response_data["lastname"] == "new lastname"
-    assert response_data["email"] == "test@test.com"
+    assert response_data["email"] == sample_user.email
 
 
 async def test_delete_user_removes_user_and_subsequent_requests_return_401_or_404(
-    auth_headers,
     client,
-    sample_user,
     session,
+    make_user,
+    make_auth_headers,
 ):
+    sample_user = await make_user()
+    auth_headers = await make_auth_headers(sample_user)
     user_id = sample_user.id
 
     response = await client.delete("/users/", headers=auth_headers)

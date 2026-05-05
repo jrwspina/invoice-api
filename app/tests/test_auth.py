@@ -1,7 +1,6 @@
-async def test_login_correct_password(client, sample_user):
-    """
-    Login with correct credentials returns a token
-    """
+async def test_login_correct_password_returns_200_and_token(client, make_user):
+    sample_user = await make_user()
+
     response = await client.post(
         "auth/token",
         data={
@@ -15,10 +14,8 @@ async def test_login_correct_password(client, sample_user):
     assert response.json()["token_type"] == "bearer"
 
 
-async def test_login_incorrect_password(client, sample_user):
-    """
-    Login with wrong password returns 401
-    """
+async def test_login_incorrect_password_returns_401(client, make_user):
+    sample_user = await make_user()
 
     response = await client.post(
         "auth/token",
@@ -31,10 +28,7 @@ async def test_login_incorrect_password(client, sample_user):
     assert response.status_code == 401
 
 
-async def test_login_non_registered_email(client):
-    """
-    Login with nonexistent email returns 401
-    """
+async def test_login_non_registered_email_returns_401(client):
     response = await client.post(
         "/auth/token",
         data={
@@ -46,19 +40,17 @@ async def test_login_non_registered_email(client):
     assert response.status_code == 401
 
 
-async def test_access_protected_endpoint_without_token(client):
-    """
-    Accessing a protected endpoint without a token returns 401
-    """
+async def test_access_protected_endpoint_without_token_returns_401(client):
     response = await client.get("/clients/")
 
     assert response.status_code == 401
 
 
-async def test_access_protected_endpoint_with_token(client, auth_headers):
-    """
-    Accessing a protected endpoint with a valid token returns 200
-    """
+async def test_access_protected_endpoint_with_token_returns_200(
+    client, make_user, make_auth_headers
+):
+    sample_user = await make_user()
+    auth_headers = await make_auth_headers(sample_user)
 
     response = await client.get(
         "/clients/",
