@@ -1,7 +1,9 @@
 import pytest
+import uuid
 
 from httpx import AsyncClient, ASGITransport
 from typing import AsyncGenerator
+from sqlalchemy import false
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from app.database import get_db
@@ -25,7 +27,7 @@ async def db_engine():
 
 @pytest.fixture(scope="session")
 def db_session_factory(db_engine):
-    return async_sessionmaker(db_engine)
+    return async_sessionmaker(db_engine, expire_on_commit=False)
 
 
 @pytest.fixture
@@ -54,15 +56,12 @@ async def client(override_db):
 @pytest.fixture
 async def make_user(session: AsyncSession):
     users = []
-    counter = 0
 
     async def _make_user(**kwargs):
-        nonlocal counter
-        counter += 1
         data = {
             "firstname": "firstname",
             "lastname": "lastname",
-            "email": f"user{counter}@test.com",
+            "email": f"user{uuid.uuid4()}@test.com",
             "password_hash": get_password_hash("password"),
         }
         data.update(kwargs)
@@ -85,15 +84,12 @@ async def make_user(session: AsyncSession):
 @pytest.fixture
 async def make_client(session: AsyncSession):
     clients = []
-    counter = 0
 
     async def _make_client(user: User, **kwargs):
-        nonlocal counter
-        counter += 1
         data = {
             "firstname": "firstname",
             "lastname": "lastname",
-            "email": f"client{counter}@test.com",
+            "email": f"client{uuid.uuid4()}@test.com",
         }
         data.update(kwargs)
         client = Client(**data, user_id=user.id)
