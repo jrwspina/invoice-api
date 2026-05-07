@@ -1,13 +1,15 @@
 from app.models import User
+import uuid
 
 
 async def test_create_new_user_returns_201_and_user_data(client):
+    sample_email = f"{uuid.uuid4()}@test.com"
     response = await client.post(
         "/users/",
         json={
             "firstname": "name",
             "lastname": "lastname",
-            "email": "user@user.com",
+            "email": sample_email,
             "password": "password",
         },
     )
@@ -23,7 +25,7 @@ async def test_create_new_user_returns_201_and_user_data(client):
 
     assert response_data["firstname"] == "name"
     assert response_data["lastname"] == "lastname"
-    assert response_data["email"] == "user@user.com"
+    assert response_data["email"] == sample_email
 
 
 async def test_create_user_with_duplicate_email_returns_error(
@@ -81,11 +83,12 @@ async def test_update_user_replaces_fields_and_returns_updated_user(
 ):
     sample_user = await make_user()
     auth_headers = await make_auth_headers(sample_user)
+    sample_email = f"{uuid.uuid4()}@test.com"
 
     new_data = {
         "firstname": "new name",
         "lastname": "new lastname",
-        "email": "new@test.com",
+        "email": sample_email,
     }
 
     response = await client.put(
@@ -137,7 +140,7 @@ async def test_patch_user_updates_only_specified_fields(
     assert response_data["email"] == sample_user.email
 
 
-async def test_delete_user_removes_user_and_subsequent_requests_return_401_or_404(
+async def test_delete_user_removes_user_and_subsequent_requests_return_401(
     client,
     session,
     make_user,
@@ -156,7 +159,7 @@ async def test_delete_user_removes_user_and_subsequent_requests_return_401_or_40
     assert result is None
 
     response = await client.get("/users/me", headers=auth_headers)
-    assert response.status_code in (401, 404)
+    assert response.status_code == 401
 
     response = await client.delete("/users/", headers=auth_headers)
-    assert response.status_code in (401, 404)
+    assert response.status_code == 401
