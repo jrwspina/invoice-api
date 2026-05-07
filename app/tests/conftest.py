@@ -2,8 +2,7 @@ import pytest
 import uuid
 
 from httpx import AsyncClient, ASGITransport
-from typing import AsyncGenerator
-from sqlalchemy import false
+from typing import AsyncGenerator, Type
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from app.database import get_db
@@ -53,6 +52,14 @@ async def client(override_db):
         yield ac
 
 
+async def unmake_object(session: AsyncSession, model_class: Type[Base], id: int):
+    obj = await session.get(model_class, id)
+
+    if obj:
+        await session.delete(obj)
+        await session.commit()
+
+
 @pytest.fixture
 async def make_user(session: AsyncSession):
     users = []
@@ -69,14 +76,13 @@ async def make_user(session: AsyncSession):
         session.add(user)
         await session.commit()
         await session.refresh(user)
-        users.append(user)
+        users.append(user.id)
         return user
 
     yield _make_user
     for user in users:
         try:
-            await session.delete(user)
-            await session.commit()
+            await unmake_object(session, User, user)
         except Exception:
             await session.rollback()
 
@@ -96,14 +102,13 @@ async def make_client(session: AsyncSession):
         session.add(client)
         await session.commit()
         await session.refresh(client)
-        clients.append(client)
+        clients.append(client.id)
         return client
 
     yield _make_client
     for client in clients:
         try:
-            await session.delete(client)
-            await session.commit()
+            await unmake_object(session, Client, client)
         except Exception:
             await session.rollback()
 
