@@ -1,13 +1,15 @@
 import pytest
 import uuid
 
+from datetime import datetime, timedelta, timezone
 from httpx import AsyncClient, ASGITransport
 from typing import AsyncGenerator, Type
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from unittest.mock import patch
 
 from app.database import get_db
 from app.main import app
-from app.models import Base, Client, User
+from app.models import Base, Client, Invoice, LineItem, Payment, User
 from app.security import get_password_hash
 from app.settings import settings
 
@@ -114,6 +116,83 @@ async def make_client(session: AsyncSession):
 
 
 @pytest.fixture
+async def make_invoice(session: AsyncSession):
+    invoices = []
+
+    async def _make_invoice(user: User, client: Client, **kwargs):
+        data = {
+            "issue_date": datetime.now(timezone.utc).replace(microsecond=0),
+            "due_date": datetime.now(timezone.utc).replace(microsecond=0)
+            + timedelta(days=1),
+        }
+        data.update(kwargs)
+        invoice = Invoice(**data, user_id=user.id, client_id=client.id)
+        session.add(invoice)
+        await session.commit()
+        await session.refresh(invoice)
+        invoices.append(invoice.id)
+        return invoice
+
+    yield _make_invoice
+    for invoice in invoices:
+        try:
+            await unmake_object(session, Invoice, invoice)
+        except Exception:
+            await session.rollback()
+
+
+@pytest.fixture
+async def make_lineitem(session: AsyncSession):
+    lineitems = []
+
+    async def _make_lineitem(invoice: Invoice, **kwargs):
+        data = {
+            "description": "item",
+            "quantity": 1,
+            "unit_price": 100,
+        }
+        data.update(kwargs)
+        lineitem = LineItem(**data, invoice_id=invoice.id)
+        session.add(lineitem)
+        await session.commit()
+        await session.refresh(lineitem)
+        lineitems.append(lineitem.id)
+        return lineitem
+
+    yield _make_lineitem
+    for lineitem in lineitems:
+        try:
+            await unmake_object(session, LineItem, lineitem)
+        except Exception:
+            await session.rollback()
+
+
+@pytest.fixture
+async def make_payment(session: AsyncSession):
+    payments = []
+
+    async def _make_payment(invoice: Invoice, **kwargs):
+        data = {
+            "paid_at": datetime.now(timezone.utc).replace(microsecond=0),
+            "value": 100,
+        }
+        data.update(kwargs)
+        payment = Payment(**data, invoice_id=invoice.id)
+        session.add(payment)
+        await session.commit()
+        await session.refresh(payment)
+        payments.append(payment.id)
+        return payment
+
+    yield _make_payment
+    for payment in payments:
+        try:
+            await unmake_object(session, Payment, payment)
+        except Exception:
+            await session.rollback()
+
+
+@pytest.fixture
 async def make_auth_headers(client: AsyncClient):
     async def _make_auth_headers(user: User):
         response = await client.post(
@@ -127,3 +206,9 @@ async def make_auth_headers(client: AsyncClient):
         return {"Authorization": f"Bearer {token}"}
 
     return _make_auth_headers
+
+
+@pytest.fixture
+def mock_send_invoice_email():
+    with patch("app.routers.invoices.send_invoice_email") as mock_task:
+        yield mock_task
