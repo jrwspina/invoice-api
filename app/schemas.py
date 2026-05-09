@@ -84,7 +84,7 @@ class ClientPatch(Base):
 class BaseInvoice(Base):
     issue_date: datetime
     due_date: datetime
-    notes: str | None
+    notes: str | None = None
 
 
 class InvoiceRead(BaseInvoice):
