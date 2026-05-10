@@ -1,3 +1,4 @@
+from app.enums import InvoiceStatus
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
@@ -78,6 +79,12 @@ async def create_payment(
 
     if user.id != invoice.user_id:
         raise HTTPException(status_code=403)
+
+    if invoice.status == InvoiceStatus.DRAFT:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot add payment to a draft invoice",
+        )
 
     payment = await db_create_payment(invoice_id, payload, session)
 
