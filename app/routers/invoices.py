@@ -25,7 +25,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[InvoiceRead])
+@router.get("", response_model=list[InvoiceRead])
 async def get_invoices(
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -54,7 +54,7 @@ async def get_invoice(
     return to_invoice_read(invoice)
 
 
-@router.post("/", response_model=InvoiceRead)
+@router.post("", response_model=InvoiceRead)
 async def create_invoice(
     invoice: InvoiceCreate,
     session: Annotated[AsyncSession, Depends(get_db)],

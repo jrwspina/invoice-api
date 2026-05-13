@@ -23,7 +23,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[PaymentRead])
+@router.get("", response_model=list[PaymentRead])
 async def get_invoice_payments(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -65,7 +65,7 @@ async def get_payment(
     return payment
 
 
-@router.post("/", response_model=PaymentRead)
+@router.post("", response_model=PaymentRead)
 async def create_payment(
     invoice_id: int,
     payload: PaymentCreate,

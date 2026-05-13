@@ -27,7 +27,7 @@ async def get_user_me(
     return current_user
 
 
-@router.post("/", response_model=UserRead, status_code=201)
+@router.post("", response_model=UserRead, status_code=201)
 async def create_user(
     user: UserCreate, session: Annotated[AsyncSession, Depends(get_db)]
 ):
@@ -41,7 +41,7 @@ async def create_user(
         raise HTTPException(status_code=409, detail="Email already registered")
 
 
-@router.put("/", response_model=UserRead)
+@router.put("", response_model=UserRead)
 async def update_user(
     payload: UserUpdate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -50,7 +50,7 @@ async def update_user(
     return await db_update_user(user, payload, session)
 
 
-@router.patch("/", response_model=UserRead)
+@router.patch("", response_model=UserRead)
 async def patch_user(
     payload: UserPatch,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -59,7 +59,7 @@ async def patch_user(
     return await db_patch_user(user, payload, session)
 
 
-@router.delete("/")
+@router.delete("")
 async def delete_user(
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],

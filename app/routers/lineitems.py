@@ -20,7 +20,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[LineItemRead])
+@router.get("", response_model=list[LineItemRead])
 async def get_lineitems(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -37,7 +37,7 @@ async def get_lineitems(
     return await db_get_lineitems(invoice, session)
 
 
-@router.post("/", response_model=LineItemRead)
+@router.post("", response_model=LineItemRead)
 async def create_lineitem(
     invoice_id: int,
     payload: LineItemCreate,

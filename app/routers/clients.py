@@ -21,7 +21,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[ClientRead])
+@router.get("", response_model=list[ClientRead])
 async def get_clients(
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -29,7 +29,7 @@ async def get_clients(
     return await db_get_user_clients(user.id, session)
 
 
-@router.get("/{client_id}/", response_model=ClientRead)
+@router.get("/{client_id}", response_model=ClientRead)
 async def get_client(
     client_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -46,7 +46,7 @@ async def get_client(
     return client
 
 
-@router.post("/", response_model=ClientRead)
+@router.post("", response_model=ClientRead)
 async def create_client(
     client: ClientCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -55,7 +55,7 @@ async def create_client(
     return await db_create_client(client, user.id, session)
 
 
-@router.put("/{client_id}/", response_model=ClientRead)
+@router.put("/{client_id}", response_model=ClientRead)
 async def update_client(
     client_id: int,
     payload: ClientUpdate,
@@ -73,7 +73,7 @@ async def update_client(
     return await db_update_client(client, payload, session)
 
 
-@router.patch("/{client_id}/", response_model=ClientRead)
+@router.patch("/{client_id}", response_model=ClientRead)
 async def patch_client(
     client_id: int,
     payload: ClientPatch,
@@ -91,7 +91,7 @@ async def patch_client(
     return await db_patch_client(client, payload, session)
 
 
-@router.delete("/{client_id}/")
+@router.delete("/{client_id}")
 async def delete_client(
     client_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
