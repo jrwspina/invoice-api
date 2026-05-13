@@ -1,7 +1,7 @@
 import asyncio
 
 from celery.signals import worker_process_init
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.celery import app
@@ -25,29 +25,19 @@ def init_worker(**kwargs):
     task_session_factory = async_sessionmaker(engine)
 
 
-async def get_invoice_data(invoice_id: int):
-    async with task_session_factory() as session:
-        return await db_get_invoice(invoice_id, session)
+async def _update_overdue_invoices(session: AsyncSession):
+    invoices = await db_get_overdue_invoices(session)
+    if invoices:
+        for invoice in invoices:
+            await db_update_overdue_invoice(invoice, session)
+            if not invoice.reminder_sent_at:
+                send_overdue_invoice_email(invoice)
+                db_update_reminder_sent_invoice(invoice)
+        await session.commit()
 
 
-async def update_overdue_invoices():
-    async with task_session_factory() as session:
-
-        invoices = await db_get_overdue_invoices(session)
-        if invoices:
-            for invoice in invoices:
-                await db_update_overdue_invoice(invoice, session)
-                if not invoice.reminder_sent_at:
-                    send_overdue_invoice_email(invoice)
-                    db_update_reminder_sent_invoice(invoice)
-
-            await session.commit()
-
-
-@app.task()
-def send_invoice_email(invoice_id: int):
-
-    invoice = asyncio.run(get_invoice_data(invoice_id))
+async def _send_invoice_email(invoice_id: int, session: AsyncSession):
+    invoice = await db_get_invoice(invoice_id, session)
 
     if invoice:
         invoice_total = db_calculate_total(invoice)
@@ -59,5 +49,18 @@ def send_invoice_email(invoice_id: int):
 
 
 @app.task()
+def send_invoice_email(invoice_id: int):
+    async def _run():
+        async with task_session_factory() as session:
+            await _send_invoice_email(invoice_id, session)
+
+    asyncio.run(_run())
+
+
+@app.task()
 def check_overdue_invoices():
-    asyncio.run(update_overdue_invoices())
+    async def _run():
+        async with task_session_factory() as session:
+            await _update_overdue_invoices(session)
+
+    asyncio.run(_run())
