@@ -5,7 +5,7 @@ import uuid
 async def test_create_new_user_returns_201_and_user_data(client):
     sample_email = f"{uuid.uuid4()}@test.com"
     response = await client.post(
-        "/users/",
+        "/users",
         json={
             "firstname": "name",
             "lastname": "lastname",
@@ -35,7 +35,7 @@ async def test_create_user_with_duplicate_email_returns_error(
     sample_user = await make_user()
 
     response = await client.post(
-        "/users/",
+        "/users",
         json={
             "firstname": "name",
             "lastname": "lastname",
@@ -92,7 +92,7 @@ async def test_update_user_replaces_fields_and_returns_updated_user(
     }
 
     response = await client.put(
-        "/users/",
+        "/users",
         json=new_data,
         headers=auth_headers,
     )
@@ -123,7 +123,7 @@ async def test_patch_user_updates_only_specified_fields(
     }
 
     response = await client.patch(
-        "/users/",
+        "/users",
         json=new_data,
         headers=auth_headers,
     )
@@ -150,7 +150,7 @@ async def test_delete_user_removes_user_and_subsequent_requests_return_401(
     auth_headers = await make_auth_headers(sample_user)
     user_id = sample_user.id
 
-    response = await client.delete("/users/", headers=auth_headers)
+    response = await client.delete("/users", headers=auth_headers)
     assert response.status_code == 204
 
     session.expire_all()
@@ -161,5 +161,5 @@ async def test_delete_user_removes_user_and_subsequent_requests_return_401(
     response = await client.get("/users/me", headers=auth_headers)
     assert response.status_code == 401
 
-    response = await client.delete("/users/", headers=auth_headers)
+    response = await client.delete("/users", headers=auth_headers)
     assert response.status_code == 401

@@ -14,7 +14,7 @@ async def test_get_invoices_return_200_and_list_invoices(
     auth_headers = await make_auth_headers(sample_user)
 
     response = await client.get(
-        "/invoices/",
+        "/invoices",
         headers=auth_headers,
     )
 
@@ -101,7 +101,7 @@ async def test_post_invoice_returns_200_and_invoice(
     due_dt = (now + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     response = await client.post(
-        "/invoices/",
+        "/invoices",
         json={
             "issue_date": dt,
             "due_date": due_dt,

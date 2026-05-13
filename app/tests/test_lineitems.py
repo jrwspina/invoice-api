@@ -13,7 +13,7 @@ async def test_get_lineitems_returns_200_and_list_lineitems(
     auth_headers = await make_auth_headers(sample_user)
 
     response = await client.get(
-        f"/invoices/{sample_invoice.id}/lineitems/",
+        f"/invoices/{sample_invoice.id}/lineitems",
         headers=auth_headers,
     )
 
@@ -36,7 +36,7 @@ async def test_get_lineitems_returns_200_and_lineitems_fields_correct(
     auth_headers = await make_auth_headers(sample_user)
 
     response = await client.get(
-        f"/invoices/{sample_invoice.id}/lineitems/",
+        f"/invoices/{sample_invoice.id}/lineitems",
         headers=auth_headers,
     )
 
@@ -64,7 +64,7 @@ async def test_get_lineitems_from_other_user_returns_403(
     auth_headers = await make_auth_headers(sample_user_1)
 
     response = await client.get(
-        f"/invoices/{sample_invoice.id}/lineitems/",
+        f"/invoices/{sample_invoice.id}/lineitems",
         headers=auth_headers,
     )
 
@@ -80,7 +80,7 @@ async def test_post_lineitem_returns_200_and_lineitem(
     auth_headers = await make_auth_headers(sample_user)
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/lineitems/",
+        f"/invoices/{sample_invoice.id}/lineitems",
         json={
             "description": "item",
             "quantity": 1,
@@ -108,7 +108,7 @@ async def test_post_lineitem_to_other_users_invoice_returns_403(
     auth_headers = await make_auth_headers(sample_user_1)
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/lineitems/",
+        f"/invoices/{sample_invoice.id}/lineitems",
         json={
             "description": "item",
             "quantity": 1,
@@ -127,7 +127,7 @@ async def test_post_lineitem_to_nonexistent_invoice_returns_404(
     auth_headers = await make_auth_headers(sample_user)
 
     response = await client.post(
-        "/invoices/9999999/lineitems/",
+        "/invoices/9999999/lineitems",
         json={
             "description": "item",
             "quantity": 1,
@@ -226,7 +226,7 @@ async def test_post_lineitem_increases_invoice_total(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/lineitems/",
+        f"/invoices/{sample_invoice.id}/lineitems",
         json=lineitem_1,
         headers=auth_headers,
     )
@@ -250,7 +250,7 @@ async def test_post_lineitem_increases_invoice_total(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/lineitems/",
+        f"/invoices/{sample_invoice.id}/lineitems",
         json=lineitem_2,
         headers=auth_headers,
     )

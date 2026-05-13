@@ -12,7 +12,7 @@ async def test_get_clients_for_authenticated_user_returns_200_and_list_clients(
     sample_client = await make_client(sample_user)
 
     response = await client.get(
-        "/clients/",
+        "/clients",
         headers=auth_headers,
     )
 
@@ -26,7 +26,7 @@ async def test_get_clients_for_authenticated_user_returns_200_and_list_clients(
 
 async def test_get_clients_without_token_return_401(client):
     response = await client.get(
-        "/clients/",
+        "/clients",
     )
 
     assert response.status_code == 401
@@ -43,7 +43,7 @@ async def test_get_client_by_id_for_existing_client_returns_200_and_client(
     sample_client = await make_client(sample_user)
 
     response = await client.get(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
         headers=auth_headers,
     )
 
@@ -66,7 +66,7 @@ async def test_get_client_nonexisting_returns_404(client, make_user, make_auth_h
     auth_headers = await make_auth_headers(sample_user)
 
     response = await client.get(
-        "/clients/99999/",
+        "/clients/99999",
         headers=auth_headers,
     )
 
@@ -84,7 +84,7 @@ async def test_get_client_from_other_user_returns_403(
     auth_headers = await make_auth_headers(sample_user_1)
 
     response = await client.get(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
         headers=auth_headers,
     )
 
@@ -96,7 +96,7 @@ async def test_get_client_without_token_returns_401(client, make_user, make_clie
     sample_client = await make_client(sample_user)
 
     response = await client.get(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
     )
 
     assert response.status_code == 401
@@ -110,7 +110,7 @@ async def test_post_client_with_required_field_returns_200_and_client(
     sample_email = f"{uuid.uuid4()}@test.com"
 
     response = await client.post(
-        "/clients/",
+        "/clients",
         json={
             "firstname": "firstname",
             "lastname": "lastname",
@@ -140,7 +140,7 @@ async def test_post_client_with_all_field_returns_200_and_client(
     sample_email = f"{uuid.uuid4()}@test.com"
 
     response = await client.post(
-        "/clients/",
+        "/clients",
         json={
             "firstname": "firstname",
             "lastname": "lastname",
@@ -174,7 +174,7 @@ async def test_put_client_returns_200_and_updated_client(
     sample_email = f"{uuid.uuid4()}@test.com"
 
     response = await client.put(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
         json={
             "firstname": "new firstname",
             "lastname": "new lastname",
@@ -205,7 +205,7 @@ async def test_put_client_nonexistent_returns_404(client, make_user, make_auth_h
     sample_email = f"{uuid.uuid4()}@test.com"
 
     response = await client.put(
-        "/clients/9999/",
+        "/clients/9999",
         json={
             "firstname": "new firstname",
             "lastname": "new lastname",
@@ -232,7 +232,7 @@ async def test_put_client_from_other_user_returns_403(
     sample_email = f"{uuid.uuid4()}@test.com"
 
     response = await client.put(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
         json={
             "firstname": "new firstname",
             "lastname": "new lastname",
@@ -257,7 +257,7 @@ async def test_patch_client_only_updates_specified_fields_returns_200_and_client
     sample_email = f"{uuid.uuid4()}@test.com"
 
     response = await client.patch(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
         json={
             "firstname": "new firstname",
             "email": sample_email,
@@ -289,7 +289,7 @@ async def test_patch_client_from_other_user_returns_403(
     sample_email = f"{uuid.uuid4()}@test.com"
 
     response = await client.patch(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
         json={
             "firstname": "new firstname",
             "email": sample_email,
@@ -310,7 +310,7 @@ async def test_delete_client_returns_204_and_client_deleted_from_db(
     client_id = sample_client.id
 
     response = await client.delete(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
         headers=auth_headers,
     )
 
@@ -324,14 +324,14 @@ async def test_delete_client_returns_204_and_client_deleted_from_db(
     assert result is None
 
     response = await client.get(
-        f"/clients/{client_id}/",
+        f"/clients/{client_id}",
         headers=auth_headers,
     )
 
     assert response.status_code == 404
 
     response = await client.delete(
-        f"/clients/{client_id}/",
+        f"/clients/{client_id}",
         headers=auth_headers,
     )
 
@@ -344,7 +344,7 @@ async def test_delete_client_nonexistent_returns_404(
     sample_user = await make_user()
     auth_headers = await make_auth_headers(sample_user)
 
-    response = await client.delete("/clients/9999/", headers=auth_headers)
+    response = await client.delete("/clients/9999", headers=auth_headers)
 
     assert response.status_code == 404
 
@@ -359,7 +359,7 @@ async def test_delete_client_from_other_user_returns_403(
     auth_headers = await make_auth_headers(sample_user_1)
 
     response = await client.delete(
-        f"/clients/{sample_client.id}/",
+        f"/clients/{sample_client.id}",
         headers=auth_headers,
     )
 

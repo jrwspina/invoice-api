@@ -16,7 +16,7 @@ async def test_get_payments_returns_200_and_includes_payments(
     auth_headers = await make_auth_headers(sample_user)
 
     response = await client.get(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         headers=auth_headers,
     )
 
@@ -38,7 +38,7 @@ async def test_get_payments_from_other_users_invoice_returns_403(
     auth_headers = await make_auth_headers(sample_user_1)
 
     response = await client.get(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         headers=auth_headers,
     )
 
@@ -122,7 +122,7 @@ async def test_post_payment_returns_200_and_payment(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         json=payment,
         headers=auth_headers,
     )
@@ -150,7 +150,7 @@ async def test_post_payment_invoice_nonexistent_returns_404(
     }
 
     response = await client.post(
-        "/invoices/999999/payments/",
+        "/invoices/999999/payments",
         json=payment,
         headers=auth_headers,
     )
@@ -173,7 +173,7 @@ async def test_post_payment_invoice_from_other_user_returns_403(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         json=payment,
         headers=auth_headers,
     )
@@ -276,7 +276,7 @@ async def test_post_payment_on_draft_invoice_returns_400(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         json=payment,
         headers=auth_headers,
     )
@@ -301,7 +301,7 @@ async def test_post_payment_partial_value_status_becomes_partially_paid(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         json=payment,
         headers=auth_headers,
     )
@@ -333,7 +333,7 @@ async def test_post_payment_full_value_status_becomes_paid(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         json=payment,
         headers=auth_headers,
     )
@@ -375,7 +375,7 @@ async def test_delete_payment_brings_total_paid_below_total_changes_status_to_pa
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         json=payment,
         headers=auth_headers,
     )
@@ -426,7 +426,7 @@ async def test_delete_payment_brings_total_paid_to_zero_changes_status_to_sent(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         json=payment,
         headers=auth_headers,
     )
@@ -486,7 +486,7 @@ async def test_post_payment_increases_total_paid(
     }
 
     response = await client.post(
-        f"/invoices/{sample_invoice.id}/payments/",
+        f"/invoices/{sample_invoice.id}/payments",
         json=payment,
         headers=auth_headers,
     )

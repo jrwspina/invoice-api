@@ -41,7 +41,7 @@ async def test_login_non_registered_email_returns_401(client):
 
 
 async def test_access_protected_endpoint_without_token_returns_401(client):
-    response = await client.get("/clients/")
+    response = await client.get("/clients")
 
     assert response.status_code == 401
 
@@ -53,7 +53,7 @@ async def test_access_protected_endpoint_with_token_returns_200(
     auth_headers = await make_auth_headers(sample_user)
 
     response = await client.get(
-        "/clients/",
+        "/clients",
         headers=auth_headers,
     )
 
