@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from app.enums import InvoiceStatus
-from app.models import Invoice, Payment
+from app.models import Payment
 
 
 async def test_get_payments_returns_200_and_includes_payments(
@@ -117,7 +117,7 @@ async def test_post_payment_returns_200_and_payment(
     auth_headers = await make_auth_headers(sample_user)
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": 100,
     }
 
@@ -145,7 +145,7 @@ async def test_post_payment_invoice_nonexistent_returns_404(
     auth_headers = await make_auth_headers(sample_user)
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": 100,
     }
 
@@ -168,7 +168,7 @@ async def test_post_payment_invoice_from_other_user_returns_403(
     auth_headers = await make_auth_headers(sample_user_1)
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": 100,
     }
 
@@ -271,7 +271,7 @@ async def test_post_payment_on_draft_invoice_returns_400(
     assert response.json()["status"] == "draft"
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": float(sample_lineitem.unit_price * sample_lineitem.quantity) / 2,
     }
 
@@ -296,7 +296,7 @@ async def test_post_payment_partial_value_status_becomes_partially_paid(
     auth_headers = await make_auth_headers(sample_user)
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": float(sample_lineitem.unit_price * sample_lineitem.quantity) / 2,
     }
 
@@ -328,7 +328,7 @@ async def test_post_payment_full_value_status_becomes_paid(
     auth_headers = await make_auth_headers(sample_user)
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": float(sample_lineitem.unit_price * sample_lineitem.quantity),
     }
 
@@ -370,7 +370,7 @@ async def test_delete_payment_brings_total_paid_below_total_changes_status_to_pa
     auth_headers = await make_auth_headers(sample_user)
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": float(sample_lineitem.unit_price * sample_lineitem.quantity) / 2,
     }
 
@@ -421,7 +421,7 @@ async def test_delete_payment_brings_total_paid_to_zero_changes_status_to_sent(
     auth_headers = await make_auth_headers(sample_user)
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": float(sample_lineitem.unit_price * sample_lineitem.quantity),
     }
 
@@ -481,7 +481,7 @@ async def test_post_payment_increases_total_paid(
     assert Decimal(response.json()["total_paid"]) == Decimal(0)
 
     payment = {
-        "paid_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "paid_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "value": float(sample_lineitem.unit_price * sample_lineitem.quantity),
     }
 
