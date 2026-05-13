@@ -91,12 +91,16 @@ async def update_invoice_status(invoice_id: int, session: AsyncSession):
         invoice.status = InvoiceStatus.PAID
 
 
-async def get_invoices(user_id: int, session: AsyncSession) -> Sequence[Invoice]:
+async def get_invoices(
+    user_id: int, session: AsyncSession, limit: int = 10, offset: int = 0
+) -> Sequence[Invoice]:
 
     stmt = (
         select(Invoice)
         .options(selectinload(Invoice.lineitems), selectinload(Invoice.payments))
         .where(Invoice.user_id == user_id)
+        .limit(limit)
+        .offset(offset)
     )
     result = await session.execute(stmt)
     return result.scalars().all()

@@ -25,6 +25,8 @@ async def get_lineitems(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    limit: int = 10,
+    offset: int = 0,
 ):
     invoice = await db_get_invoice(invoice_id, session)
 
@@ -34,7 +36,7 @@ async def get_lineitems(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403)
 
-    return await db_get_lineitems(invoice, session)
+    return await db_get_lineitems(invoice, session, limit, offset)
 
 
 @router.post("", response_model=LineItemRead)

@@ -29,8 +29,10 @@ router = APIRouter(
 async def get_invoices(
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    limit: int = 10,
+    offset: int = 0,
 ):
-    result = await db_get_invoices(user.id, session)
+    result = await db_get_invoices(user.id, session, limit, offset)
 
     invoices = [to_invoice_read(invoice) for invoice in result]
 

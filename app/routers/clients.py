@@ -25,6 +25,8 @@ router = APIRouter(
 async def get_clients(
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    limit: int = 10,
+    offset: int = 0,
 ):
     return await db_get_user_clients(user.id, session)
 

@@ -5,8 +5,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_lineitems(invoice: Invoice, session: AsyncSession) -> Sequence[LineItem]:
-    stmt = select(LineItem).where(LineItem.invoice_id == invoice.id)
+async def get_lineitems(
+    invoice: Invoice, session: AsyncSession, limit: int = 10, offset: int = 0
+) -> Sequence[LineItem]:
+    stmt = (
+        select(LineItem)
+        .where(LineItem.invoice_id == invoice.id)
+        .limit(limit)
+        .offset(offset)
+    )
     result = await session.execute(stmt)
     return result.scalars().all()
 

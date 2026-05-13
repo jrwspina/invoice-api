@@ -28,6 +28,8 @@ async def get_invoice_payments(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    limit: int = 10,
+    offset: int = 0,
 ):
     invoice = await db_get_invoice(invoice_id, session)
 
@@ -37,7 +39,7 @@ async def get_invoice_payments(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403)
 
-    return await db_get_invoice_payments(invoice, session)
+    return await db_get_invoice_payments(invoice, session, limit, offset)
 
 
 @router.get("/{payment_id}", response_model=PaymentRead)

@@ -7,9 +7,17 @@ from app.models import Invoice, Payment
 
 
 async def get_invoice_payments(
-    invoice: Invoice, session: AsyncSession
+    invoice: Invoice,
+    session: AsyncSession,
+    limit: int = 10,
+    offset: int = 0,
 ) -> Sequence[Payment]:
-    stmt = select(Payment).where(Payment.invoice_id == invoice.id)
+    stmt = (
+        select(Payment)
+        .where(Payment.invoice_id == invoice.id)
+        .limit(limit)
+        .offset(offset)
+    )
     result = await session.execute(stmt)
     return result.scalars().all()
 
