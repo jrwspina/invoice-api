@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from app.enums import InvoiceStatus
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 
 class Base(BaseModel):
@@ -86,6 +86,12 @@ class BaseInvoice(Base):
     due_date: datetime
     notes: str | None = None
 
+    @model_validator(mode="after")
+    def due_date_after_issue_date(self):
+        if self.due_date <= self.issue_date:
+            raise ValueError("due_date must be greater than issue_date")
+        return self
+
 
 class InvoiceRead(BaseInvoice):
     id: int
@@ -123,7 +129,12 @@ class BaseLineItem(Base):
 
 
 class LineItemCreate(BaseLineItem):
-    pass
+    @field_validator("quantity", "unit_price")
+    @classmethod
+    def must_be_positive(cls, v):
+        if v <= 0:
+            raise ValueError("must be greater than 0")
+        return v
 
 
 class LineItemRead(BaseLineItem):
@@ -137,7 +148,12 @@ class BasePayment(Base):
 
 
 class PaymentCreate(BasePayment):
-    pass
+    @field_validator("value")
+    @classmethod
+    def value_must_be_positive(cls, v):
+        if v <= 0:
+            raise ValueError("value must be greater than 0")
+        return v
 
 
 class PaymentRead(BasePayment):

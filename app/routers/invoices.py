@@ -143,6 +143,12 @@ async def patch_invoice(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403)
 
+    effective_due_date = payload.due_date or invoice.due_date
+    effective_issue_date = payload.issue_date or invoice.issue_date
+
+    if effective_due_date <= effective_issue_date:
+        raise HTTPException(status_code=422, detail="due_date must be after issue_date")
+
     result = await db_patch_invoice(invoice, payload, session)
 
     return to_invoice_read(result)
