@@ -51,7 +51,7 @@ async def get_invoice(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return to_invoice_read(invoice)
 
@@ -68,7 +68,7 @@ async def create_invoice(
         raise HTTPException(status_code=404, detail="Client not found")
 
     if client.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     result = await db_create_invoice(invoice, user.id, session)
 
@@ -87,7 +87,7 @@ async def send_drafted_invoice(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     client = await db_get_client(invoice.client_id, session)
 
@@ -122,7 +122,7 @@ async def update_invoice(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     result = await db_update_invoice(invoice, payload, session)
     return to_invoice_read(result)
@@ -141,7 +141,7 @@ async def patch_invoice(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     effective_due_date = payload.due_date or invoice.due_date
     effective_issue_date = payload.issue_date or invoice.issue_date
@@ -166,7 +166,7 @@ async def delete_invoice(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     await db_delete_invoice(invoice, session)
 

@@ -37,7 +37,7 @@ async def get_invoice_payments(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return await db_get_invoice_payments(invoice, session, limit, offset)
 
@@ -62,7 +62,7 @@ async def get_payment(
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     if user.id != invoice.user_id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return payment
 
@@ -80,7 +80,7 @@ async def create_payment(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if user.id != invoice.user_id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     if invoice.status == InvoiceStatus.DRAFT:
         raise HTTPException(
@@ -117,7 +117,7 @@ async def delete_payment(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     await db_delete_payment(payment, session)
 

@@ -43,7 +43,7 @@ async def get_client(
         raise HTTPException(status_code=404, detail="Client not found")
 
     if client.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return client
 
@@ -70,7 +70,7 @@ async def update_client(
         raise HTTPException(status_code=404, detail="Client not found")
 
     if client.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return await db_update_client(client, payload, session)
 
@@ -88,7 +88,7 @@ async def patch_client(
         raise HTTPException(status_code=404, detail="Client not found")
 
     if client.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return await db_patch_client(client, payload, session)
 
@@ -105,7 +105,7 @@ async def delete_client(
         raise HTTPException(status_code=404, detail="Client not found")
 
     if client.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     await db_delete_client(client, session)
 

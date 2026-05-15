@@ -34,7 +34,7 @@ async def get_lineitems(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return await db_get_lineitems(invoice, session, limit, offset)
 
@@ -52,7 +52,7 @@ async def create_lineitem(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return await db_create_lineitem(invoice, payload, session)
 
@@ -70,7 +70,7 @@ async def delete_lineitem(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     if invoice.user_id != user.id:
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     lineitem = await db_get_lineitem(lineitem_id, session)
 
