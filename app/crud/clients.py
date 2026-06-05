@@ -10,7 +10,11 @@ async def get_user_clients(
     user_id: int, session: AsyncSession, limit: int = 10, offset: int = 0
 ) -> Sequence[Client]:
     result = await session.execute(
-        select(Client).where(Client.user_id == user_id).limit(limit).offset(offset)
+        select(Client)
+        .where(Client.user_id == user_id)
+        .order_by(Client.id)
+        .limit(limit)
+        .offset(offset)
     )
     return result.scalars().all()
 

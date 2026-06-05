@@ -5,6 +5,32 @@ from app.enums import InvoiceStatus
 from app.models import Payment
 
 
+async def test_get_payments_limit_returns_correct_amount_of_payments(
+    client, make_user, make_client, make_invoice, make_payment, make_auth_headers
+):
+    sample_user = await make_user()
+    limit = 5
+    sample_client = await make_client(sample_user)
+    sample_invoice = await make_invoice(sample_user, sample_client)
+    payments = []
+    for _ in range(10):
+        payments.append(await make_payment(sample_invoice))
+    auth_headers = await make_auth_headers(sample_user)
+
+    response = await client.get(
+        f"/invoices/{sample_invoice.id}/payments",
+        headers=auth_headers,
+        params={"limit": limit},
+    )
+
+    assert response.status_code == 200
+
+    response_data = response.json()
+
+    assert isinstance(response_data, list)
+    assert len(response_data) == limit
+
+
 async def test_get_payments_returns_200_and_includes_payments(
     client, make_user, make_client, make_invoice, make_payment, make_auth_headers
 ):

@@ -1,4 +1,5 @@
-from fastapi import Depends, HTTPException
+from dataclasses import dataclass
+from fastapi import Depends, HTTPException, Query
 
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,12 @@ from app.crud import get_user_by_email
 from app.database import get_db
 from app.models import User
 from app.security import decode_access_token, oauth2_scheme
+
+
+@dataclass
+class PaginationParams:
+    limit: Annotated[int, Query(ge=1, le=100)] = 10
+    offset: Annotated[int, Query(ge=0)] = 0
 
 
 async def get_current_user(

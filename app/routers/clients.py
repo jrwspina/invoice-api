@@ -11,7 +11,7 @@ from app.crud import (
     delete_client as db_delete_client,
 )
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import PaginationParams, get_current_user
 from app.models import User
 from app.schemas import ClientCreate, ClientPatch, ClientRead, ClientUpdate
 
@@ -25,10 +25,11 @@ router = APIRouter(
 async def get_clients(
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
-    limit: int = 10,
-    offset: int = 0,
+    pagination: Annotated[PaginationParams, Depends(PaginationParams)],
 ):
-    return await db_get_user_clients(user.id, session)
+    return await db_get_user_clients(
+        user.id, session, pagination.limit, pagination.offset
+    )
 
 
 @router.get("/{client_id}", response_model=ClientRead)

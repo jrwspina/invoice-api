@@ -15,6 +15,7 @@ async def get_invoice_payments(
     stmt = (
         select(Payment)
         .where(Payment.invoice_id == invoice.id)
+        .order_by(Payment.id)
         .limit(limit)
         .offset(offset)
     )

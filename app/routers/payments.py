@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import PaginationParams, get_current_user
 from app.models import User
 from app.schemas import PaymentRead, PaymentCreate
 
@@ -28,8 +28,7 @@ async def get_invoice_payments(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
-    limit: int = 10,
-    offset: int = 0,
+    pagination: Annotated[PaginationParams, Depends(PaginationParams)],
 ):
     invoice = await db_get_invoice(invoice_id, session)
 
@@ -39,7 +38,9 @@ async def get_invoice_payments(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    return await db_get_invoice_payments(invoice, session, limit, offset)
+    return await db_get_invoice_payments(
+        invoice, session, pagination.limit, pagination.offset
+    )
 
 
 @router.get("/{payment_id}", response_model=PaymentRead)

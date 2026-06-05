@@ -10,7 +10,7 @@ from app.crud import (
     delete_lineitem as db_delete_lineitem,
 )
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import PaginationParams, get_current_user
 from app.models import User
 from app.schemas import LineItemRead, LineItemCreate
 
@@ -25,8 +25,7 @@ async def get_lineitems(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
-    limit: int = 10,
-    offset: int = 0,
+    pagination: Annotated[PaginationParams, Depends(PaginationParams)],
 ):
     invoice = await db_get_invoice(invoice_id, session)
 
@@ -36,7 +35,7 @@ async def get_lineitems(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    return await db_get_lineitems(invoice, session, limit, offset)
+    return await db_get_lineitems(invoice, session, pagination.limit, pagination.offset)
 
 
 @router.post("", response_model=LineItemRead)

@@ -11,6 +11,7 @@ async def get_lineitems(
     stmt = (
         select(LineItem)
         .where(LineItem.invoice_id == invoice.id)
+        .order_by(LineItem.id)
         .limit(limit)
         .offset(offset)
     )

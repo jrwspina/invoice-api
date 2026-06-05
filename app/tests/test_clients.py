@@ -1,6 +1,81 @@
 import uuid
 
 
+async def test_get_clients_limit_returns_correct_amount_of_clients(
+    client,
+    make_user,
+    make_auth_headers,
+    make_client,
+):
+    sample_user = await make_user()
+    limit = 5
+    clients = []
+    for i in range(10):
+        clients.append(await make_client(sample_user))
+    auth_headers = await make_auth_headers(sample_user)
+
+    response = await client.get(
+        "/clients",
+        headers=auth_headers,
+        params={"limit": limit},
+    )
+
+    assert response.status_code == 200
+
+    response_data = response.json()
+
+    assert isinstance(response_data, list)
+    assert len(response_data) == limit
+
+
+async def test_get_clients_offset_returns_correct_offset(
+    client,
+    make_user,
+    make_auth_headers,
+    make_client,
+):
+    sample_user = await make_user()
+    offset = 1
+    limit = 5
+    clients = []
+    for i in range(10):
+        clients.append(await make_client(sample_user))
+    auth_headers = await make_auth_headers(sample_user)
+
+    response = await client.get(
+        "/clients",
+        headers=auth_headers,
+        params={"offset": offset, "limit": limit},
+    )
+
+    assert response.status_code == 200
+
+    response_data = response.json()
+
+    assert isinstance(response_data, list)
+    assert len(response_data) == limit
+    assert all([c["email"] != clients[0].email for c in response_data])
+
+
+async def test_get_clients_invalid_limit_returns_422(
+    client,
+    make_user,
+    make_auth_headers,
+    make_client,
+):
+    sample_user = await make_user()
+    limit = 101
+    auth_headers = await make_auth_headers(sample_user)
+
+    response = await client.get(
+        "/clients",
+        headers=auth_headers,
+        params={"limit": limit},
+    )
+
+    assert response.status_code == 422
+
+
 async def test_get_clients_for_authenticated_user_returns_200_and_list_clients(
     client,
     make_user,

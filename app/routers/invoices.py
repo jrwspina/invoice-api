@@ -15,7 +15,7 @@ from app.crud import (
     send_drafted_invoice as db_send_drafted_invoice,
 )
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import PaginationParams, get_current_user
 from app.models import User
 from app.schemas import InvoiceRead, InvoiceCreate, InvoicePatch, InvoiceUpdate
 
@@ -29,10 +29,11 @@ router = APIRouter(
 async def get_invoices(
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
-    limit: int = 10,
-    offset: int = 0,
+    pagination: Annotated[PaginationParams, Depends(PaginationParams)],
 ):
-    result = await db_get_invoices(user.id, session, limit, offset)
+    result = await db_get_invoices(
+        user.id, session, pagination.limit, pagination.offset
+    )
 
     invoices = [to_invoice_read(invoice) for invoice in result]
 

@@ -99,6 +99,7 @@ async def get_invoices(
         select(Invoice)
         .options(selectinload(Invoice.lineitems), selectinload(Invoice.payments))
         .where(Invoice.user_id == user_id)
+        .order_by(Invoice.id)
         .limit(limit)
         .offset(offset)
     )
