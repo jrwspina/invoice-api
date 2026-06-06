@@ -1,0 +1,16 @@
+compose.yaml
+Dockerfile.prod
+Dockerfile.dev
+.env
+.coverage
+.coveragerc
+requirements-dev.txt
+pytest.ini
+app/tests/
+.venv/
+__pycache__/
+.pytest_cache/
+htmlcov/
+.git/
+*.db
+*.md
