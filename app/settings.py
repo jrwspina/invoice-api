@@ -1,12 +1,19 @@
 from typing import Optional
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    postgres_user: str
-    postgres_password: str
-    postgres_db: str
-    postgres_port: int
+
+    @field_validator("postgres_url", mode="before")
+    @classmethod
+    def postgres_url_validator(cls, v: str) -> str:
+        strs = ["postgres://", "postgresql://"]
+        replacement = "postgresql+asyncpg://"
+        for str in strs:
+            v.replace(str, replacement)
+        return v
+
     postgres_url: str
 
     secret_key: str
@@ -20,8 +27,7 @@ class Settings(BaseSettings):
     email_password: Optional[str] = None
     email_from: str
 
-    postgres_test_db: str
-    test_postgres_url: str
+    test_postgres_url: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
