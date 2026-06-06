@@ -1,10 +1,11 @@
 from app.enums import InvoiceStatus
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 
 from app.database import get_db
 from app.dependencies import PaginationParams, get_current_user
+from app.limiter import limiter, get_user_key
 from app.models import User
 from app.schemas import PaymentRead, PaymentCreate
 
@@ -24,7 +25,9 @@ router = APIRouter(
 
 
 @router.get("", response_model=list[PaymentRead])
+@limiter.limit("60/minute", key_func=get_user_key)
 async def get_invoice_payments(
+    request: Request,
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -44,7 +47,9 @@ async def get_invoice_payments(
 
 
 @router.get("/{payment_id}", response_model=PaymentRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def get_payment(
+    request: Request,
     invoice_id: int,
     payment_id: int,
     user: Annotated[User, Depends(get_current_user)],
@@ -69,7 +74,9 @@ async def get_payment(
 
 
 @router.post("", response_model=PaymentRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def create_payment(
+    request: Request,
     invoice_id: int,
     payload: PaymentCreate,
     user: Annotated[User, Depends(get_current_user)],
@@ -102,7 +109,9 @@ async def create_payment(
 
 
 @router.delete("/{payment_id}")
+@limiter.limit("60/minute", key_func=get_user_key)
 async def delete_payment(
+    request: Request,
     payment_id: int,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db)],

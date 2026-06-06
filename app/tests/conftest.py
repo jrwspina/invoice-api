@@ -1,16 +1,19 @@
 import pytest
 import uuid
+import redis as sync_redis
 
 from datetime import datetime, timedelta, timezone
 from httpx import AsyncClient, ASGITransport
 from typing import AsyncGenerator, Type
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from unittest.mock import patch
 
 from app.database import get_db
 from app.main import app
 from app.models import Base, Client, Invoice, LineItem, Payment, User
-from app.security import get_password_hash
+from app.security import create_access_token, get_password_hash
 from app.settings import settings
 
 
@@ -46,6 +49,16 @@ def override_db(db_session_factory):
     app.dependency_overrides[get_db] = get_test_db
     yield
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    r = sync_redis.from_url(settings.redis_url)
+    for key in r.scan_iter(match="LIMITER*"):
+        r.delete(key)
+    yield
+    for key in r.scan_iter(match="LIMITER*"):
+        r.delete(key)
 
 
 @pytest.fixture
@@ -195,14 +208,7 @@ async def make_payment(session: AsyncSession):
 @pytest.fixture
 async def make_auth_headers(client: AsyncClient):
     async def _make_auth_headers(user: User):
-        response = await client.post(
-            "auth/token",
-            data={
-                "username": user.email,
-                "password": "password",
-            },
-        )
-        token = response.json()["access_token"]
+        token = create_access_token(data={"sub": user.email})
         return {"Authorization": f"Bearer {token}"}
 
     return _make_auth_headers

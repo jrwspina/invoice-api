@@ -58,3 +58,15 @@ async def test_access_protected_endpoint_with_token_returns_200(
     )
 
     assert response.status_code == 200
+
+
+async def test_limiting_on_login_endpoint_returns_429_after_limit_exceeded(client):
+    responses = []
+    for _ in range(6):
+        response = await client.post(
+            "/auth/token",
+            data={"username": "idontexist@email.com", "password": "password"},
+        )
+        responses.append(response.status_code)
+
+    assert responses.pop() == 429

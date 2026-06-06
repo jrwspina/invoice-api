@@ -1,11 +1,12 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.crud.users import authenticate_user
+from app.limiter import limiter
 from app.schemas import Token
 from app.security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
@@ -16,7 +17,9 @@ router = APIRouter(
 
 
 @router.post("/token")
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[AsyncSession, Depends(get_db)],
 ):

@@ -1,5 +1,6 @@
+from app.crud.users import get_user
 from app.tasks import send_invoice_email
-from fastapi import APIRouter, Depends, Response, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,7 @@ from app.crud import (
 )
 from app.database import get_db
 from app.dependencies import PaginationParams, get_current_user
+from app.limiter import limiter, get_user_key
 from app.models import User
 from app.schemas import InvoiceRead, InvoiceCreate, InvoicePatch, InvoiceUpdate
 
@@ -26,7 +28,9 @@ router = APIRouter(
 
 
 @router.get("", response_model=list[InvoiceRead])
+@limiter.limit("60/minute", key_func=get_user_key)
 async def get_invoices(
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
     pagination: Annotated[PaginationParams, Depends(PaginationParams)],
@@ -41,7 +45,9 @@ async def get_invoices(
 
 
 @router.get("/{invoice_id}", response_model=InvoiceRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def get_invoice(
+    request: Request,
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -58,7 +64,9 @@ async def get_invoice(
 
 
 @router.post("", response_model=InvoiceRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def create_invoice(
+    request: Request,
     invoice: InvoiceCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -77,7 +85,9 @@ async def create_invoice(
 
 
 @router.post("/{invoice_id}/send", response_model=InvoiceRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def send_drafted_invoice(
+    request: Request,
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -111,7 +121,9 @@ async def send_drafted_invoice(
 
 
 @router.put("/{invoice_id}", response_model=InvoiceRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def update_invoice(
+    request: Request,
     invoice_id: int,
     payload: InvoiceUpdate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -130,7 +142,9 @@ async def update_invoice(
 
 
 @router.patch("/{invoice_id}", response_model=InvoiceRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def patch_invoice(
+    request: Request,
     invoice_id: int,
     payload: InvoicePatch,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -156,7 +170,9 @@ async def patch_invoice(
 
 
 @router.delete("/{invoice_id}")
+@limiter.limit("60/minute", key_func=get_user_key)
 async def delete_invoice(
+    request: Request,
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],

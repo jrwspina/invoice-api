@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,7 @@ from app.crud import (
 )
 from app.database import get_db
 from app.dependencies import PaginationParams, get_current_user
+from app.limiter import limiter, get_user_key
 from app.models import User
 from app.schemas import ClientCreate, ClientPatch, ClientRead, ClientUpdate
 
@@ -22,7 +23,9 @@ router = APIRouter(
 
 
 @router.get("", response_model=list[ClientRead])
+@limiter.limit("60/minute", key_func=get_user_key)
 async def get_clients(
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
     pagination: Annotated[PaginationParams, Depends(PaginationParams)],
@@ -33,7 +36,9 @@ async def get_clients(
 
 
 @router.get("/{client_id}", response_model=ClientRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def get_client(
+    request: Request,
     client_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -50,7 +55,9 @@ async def get_client(
 
 
 @router.post("", response_model=ClientRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def create_client(
+    request: Request,
     client: ClientCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -59,7 +66,9 @@ async def create_client(
 
 
 @router.put("/{client_id}", response_model=ClientRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def update_client(
+    request: Request,
     client_id: int,
     payload: ClientUpdate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -77,7 +86,9 @@ async def update_client(
 
 
 @router.patch("/{client_id}", response_model=ClientRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def patch_client(
+    request: Request,
     client_id: int,
     payload: ClientPatch,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -95,7 +106,9 @@ async def patch_client(
 
 
 @router.delete("/{client_id}")
+@limiter.limit("60/minute", key_func=get_user_key)
 async def delete_client(
+    request: Request,
     client_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from typing import Annotated
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from app.crud import (
 )
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.limiter import limiter, get_user_key
 from app.models import User
 from app.schemas import UserCreate, UserPatch, UserRead, UserUpdate
 
@@ -21,15 +22,20 @@ router = APIRouter(
 
 
 @router.get("/me", response_model=UserRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def get_user_me(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
 ):
     return current_user
 
 
 @router.post("", response_model=UserRead, status_code=201)
+@limiter.limit("5/minute")
 async def create_user(
-    user: UserCreate, session: Annotated[AsyncSession, Depends(get_db)]
+    request: Request,
+    user: UserCreate,
+    session: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         db_user = await db_create_user(user, session)
@@ -42,7 +48,9 @@ async def create_user(
 
 
 @router.put("", response_model=UserRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def update_user(
+    request: Request,
     payload: UserUpdate,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -51,7 +59,9 @@ async def update_user(
 
 
 @router.patch("", response_model=UserRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def patch_user(
+    request: Request,
     payload: UserPatch,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -60,7 +70,9 @@ async def patch_user(
 
 
 @router.delete("")
+@limiter.limit("60/minute", key_func=get_user_key)
 async def delete_user(
+    request: Request,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
 ):

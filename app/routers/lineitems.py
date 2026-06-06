@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ from app.crud import (
 )
 from app.database import get_db
 from app.dependencies import PaginationParams, get_current_user
+from app.limiter import limiter, get_user_key
 from app.models import User
 from app.schemas import LineItemRead, LineItemCreate
 
@@ -21,7 +22,9 @@ router = APIRouter(
 
 
 @router.get("", response_model=list[LineItemRead])
+@limiter.limit("60/minute", key_func=get_user_key)
 async def get_lineitems(
+    request: Request,
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
@@ -39,7 +42,9 @@ async def get_lineitems(
 
 
 @router.post("", response_model=LineItemRead)
+@limiter.limit("60/minute", key_func=get_user_key)
 async def create_lineitem(
+    request: Request,
     invoice_id: int,
     payload: LineItemCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -57,7 +62,9 @@ async def create_lineitem(
 
 
 @router.delete("/{lineitem_id}")
+@limiter.limit("60/minute", key_func=get_user_key)
 async def delete_lineitem(
+    request: Request,
     lineitem_id: int,
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
