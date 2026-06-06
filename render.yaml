@@ -1,0 +1,107 @@
+databases:
+  - name: invoice-db
+    databaseName: invoicedb
+    user: invoiceuser
+    ipAllowList: []
+    plan: free
+
+services:
+  - type: redis
+    name: invoice-redis
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: noeviction
+
+  - type: web
+    name: invoice-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile.prod
+    plan: free
+    healthCheckPath: /docs
+    preDeployCommand: alembic upgrade head
+    envVars:
+      - key: POSTGRES_URL
+        fromDatabase:
+          name: invoice-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: invoice-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MAIL_SERVER
+        value: placeholder
+      - key: MAIL_PORT
+        value: "587"
+      - key: EMAIL_FROM
+        value: noreply@example.com
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+
+  - type: worker
+    name: invoice-celery-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile.prod
+    startCommand: celery -A app.celery worker --loglevel=INFO
+    plan: free
+    envVars:
+      - key: POSTGRES_URL
+        fromDatabase:
+          name: invoice-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: invoice-redis
+          property: connectionString
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: invoice-api
+          envVarKey: SECRET_KEY
+      - key: MAIL_SERVER
+        value: placeholder
+      - key: MAIL_PORT
+        value: "587"
+      - key: EMAIL_FROM
+        value: noreply@example.com
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+
+  - type: worker
+    name: invoice-celery-beat
+    runtime: docker
+    dockerfilePath: ./Dockerfile.prod
+    startCommand: celery -A app.celery beat --loglevel=INFO
+    plan: free
+    envVars:
+      - key: POSTGRES_URL
+        fromDatabase:
+          name: invoice-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: invoice-redis
+          property: connectionString
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: invoice-api
+          envVarKey: SECRET_KEY
+      - key: MAIL_SERVER
+        value: placeholder
+      - key: MAIL_PORT
+        value: "587"
+      - key: EMAIL_FROM
+        value: noreply@example.com
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false

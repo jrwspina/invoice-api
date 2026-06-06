@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     def postgres_url_validator(cls, v: str) -> str:
         strs = ["postgres://", "postgresql://"]
         replacement = "postgresql+asyncpg://"
-        for str in strs:
-            v.replace(str, replacement)
+        for s in strs:
+            v = v.replace(s, replacement)
         return v
 
     postgres_url: str
