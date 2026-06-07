@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from app.email import build_invoice_email_body, send_overdue_invoice_email
 from app.crud import (
-    get_invoice as db_get_invoice,
+    get_invoice_nocache as db_get_invoice_nocache,
     calculate_total as db_calculate_total,
 )
 from app.enums import InvoiceStatus
@@ -19,7 +19,7 @@ async def test_build_invoice_email_body_returns_correct_body(
     sample_lineitem_1 = await make_lineitem(sample_invoice)
     sample_lineitem_2 = await make_lineitem(sample_invoice)
 
-    invoice = await db_get_invoice(sample_invoice.id, session)
+    invoice = await db_get_invoice_nocache(sample_invoice.id, session)
     assert invoice is not None
 
     body = build_invoice_email_body(invoice, db_calculate_total(invoice))
@@ -40,7 +40,7 @@ async def test_build_invoice_email_body_with_no_lineitems(
     sample_client = await make_client(sample_user)
     sample_invoice = await make_invoice(sample_user, sample_client)
 
-    invoice = await db_get_invoice(sample_invoice.id, session)
+    invoice = await db_get_invoice_nocache(sample_invoice.id, session)
     assert invoice is not None
 
     body = build_invoice_email_body(invoice, db_calculate_total(invoice))
@@ -80,7 +80,7 @@ async def test_send_overdue_invoice_email(
     sample_client = await make_client(sample_user)
     sample_invoice = await make_invoice(sample_user, sample_client)
 
-    invoice = await db_get_invoice(sample_invoice.id, session)
+    invoice = await db_get_invoice_nocache(sample_invoice.id, session)
 
     assert invoice is not None
 

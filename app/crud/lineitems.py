@@ -1,8 +1,10 @@
 from typing import Sequence
-from app.models import Invoice, LineItem
-from app.schemas import LineItemCreate
+from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models import Invoice, LineItem
+from app.schemas import LineItemCreate
 
 
 async def get_lineitems(
@@ -24,16 +26,20 @@ async def get_lineitem(lineitem_id: int, session: AsyncSession) -> LineItem | No
 
 
 async def create_lineitem(
-    invoice: Invoice, lineitem: LineItemCreate, session: AsyncSession
+    invoice: Invoice, lineitem: LineItemCreate, session: AsyncSession, redis: Redis
 ) -> LineItem:
+    invoice_id = invoice.id
     db_lineitem = LineItem(**lineitem.model_dump())
     db_lineitem.invoice_id = invoice.id
     session.add(db_lineitem)
     await session.commit()
     await session.refresh(db_lineitem)
+    await redis.delete(f"invoice:{invoice_id}")
     return db_lineitem
 
 
-async def delete_lineitem(lineitem: LineItem, session: AsyncSession):
+async def delete_lineitem(lineitem: LineItem, session: AsyncSession, redis: Redis):
+    invoice_id = lineitem.invoice_id
     await session.delete(lineitem)
     await session.commit()
+    await redis.delete(f"invoice:{invoice_id}")

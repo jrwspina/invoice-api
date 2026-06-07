@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Sequence
+from redis.asyncio import Redis
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -60,17 +61,21 @@ async def update_overdue_invoice(invoice: Invoice, session: AsyncSession):
     invoice.status = InvoiceStatus.OVERDUE
 
 
-async def send_drafted_invoice(invoice: Invoice, session: AsyncSession) -> bool:
+async def send_drafted_invoice(
+    invoice: Invoice, session: AsyncSession, redis: Redis
+) -> bool:
+    invoice_id = invoice.id
     if invoice.status != InvoiceStatus.DRAFT:
         return False
 
     invoice.status = InvoiceStatus.SENT
     await session.commit()
+    await redis.delete(f"invoice:{invoice_id}")
     return True
 
 
-async def update_invoice_status(invoice_id: int, session: AsyncSession):
-    invoice = await get_invoice(invoice_id, session)
+async def update_invoice_status(invoice_id: int, session: AsyncSession, redis: Redis):
+    invoice = await get_invoice_nocache(invoice_id, session)
     assert invoice is not None
 
     total = calculate_total(invoice)
@@ -78,6 +83,8 @@ async def update_invoice_status(invoice_id: int, session: AsyncSession):
     stmt = select(Payment).where(Payment.invoice_id == invoice.id)
     payments = (await session.execute(stmt)).scalars().all()
     total_paid = sum(p.value for p in payments)
+
+    await redis.delete(f"invoice:{invoice_id}")
 
     if total_paid == 0:
         if invoice.status in [InvoiceStatus.PAID, InvoiceStatus.PARTIALLY_PAID]:
@@ -107,7 +114,35 @@ async def get_invoices(
     return result.scalars().all()
 
 
-async def get_invoice(invoice_id: int, session: AsyncSession) -> Invoice | None:
+async def get_invoice(
+    invoice_id: int, session: AsyncSession, redis: Redis
+) -> InvoiceRead | None:
+    cached = await redis.get(f"invoice:{invoice_id}")
+    if cached:
+        return InvoiceRead.model_validate_json(cached)
+    stmt = (
+        select(Invoice)
+        .options(
+            selectinload(Invoice.lineitems),
+            selectinload(Invoice.payments),
+            selectinload(Invoice.client),
+            selectinload(Invoice.user),
+        )
+        .where(Invoice.id == invoice_id)
+    )
+    invoice = (await session.execute(stmt)).scalar_one_or_none()
+    if invoice:
+        invoice = to_invoice_read(invoice)
+        await redis.set(
+            f"invoice:{invoice_id}",
+            invoice.model_dump_json(),
+            ex=300,
+        )
+        return invoice
+    return None
+
+
+async def get_invoice_nocache(invoice_id: int, session: AsyncSession) -> Invoice | None:
     stmt = (
         select(Invoice)
         .options(
@@ -132,43 +167,49 @@ async def create_invoice(
     await session.commit()
     await session.refresh(db_invoice)
 
-    result = await get_invoice(db_invoice.id, session)
+    result = await get_invoice_nocache(db_invoice.id, session)
     assert result is not None
     return result
 
 
 async def update_invoice(
-    invoice: Invoice, new_data: InvoiceUpdate, session: AsyncSession
+    invoice: Invoice, new_data: InvoiceUpdate, session: AsyncSession, redis: Redis
 ) -> Invoice:
     invoice.issue_date = new_data.issue_date
     invoice.due_date = new_data.due_date
     invoice.notes = new_data.notes
     invoice.status = new_data.status
+    invoice_id = invoice.id
 
     await session.commit()
     await session.refresh(invoice)
+    await redis.delete(f"invoice:{invoice_id}")
 
-    result = await get_invoice(invoice.id, session)
+    result = await get_invoice_nocache(invoice.id, session)
     assert result is not None
     return result
 
 
 async def patch_invoice(
-    invoice: Invoice, data: InvoicePatch, session: AsyncSession
+    invoice: Invoice, data: InvoicePatch, session: AsyncSession, redis: Redis
 ) -> Invoice:
     new_data = data.model_dump(exclude_unset=True)
+    invoice_id = invoice.id
 
     for key, value in new_data.items():
         setattr(invoice, key, value)
 
     await session.commit()
     await session.refresh(invoice)
+    await redis.delete(f"invoice:{invoice_id}")
 
-    result = await get_invoice(invoice.id, session)
+    result = await get_invoice_nocache(invoice.id, session)
     assert result is not None
     return result
 
 
-async def delete_invoice(invoice: Invoice, session: AsyncSession):
+async def delete_invoice(invoice: Invoice, session: AsyncSession, redis: Redis):
+    invoice_id = invoice.id
     await session.delete(invoice)
     await session.commit()
+    await redis.delete(f"invoice:{invoice_id}")

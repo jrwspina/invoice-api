@@ -7,7 +7,7 @@ from sqlalchemy.pool import NullPool
 from app.celery import app
 from app.crud import (
     calculate_total as db_calculate_total,
-    get_invoice as db_get_invoice,
+    get_invoice_nocache as db_get_invoice_nocache,
     get_overdue_invoices as db_get_overdue_invoices,
     update_overdue_invoice as db_update_overdue_invoice,
     update_reminder_sent_invoice as db_update_reminder_sent_invoice,
@@ -37,7 +37,7 @@ async def _update_overdue_invoices(session: AsyncSession):
 
 
 async def _send_invoice_email(invoice_id: int, session: AsyncSession):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if invoice:
         invoice_total = db_calculate_total(invoice)

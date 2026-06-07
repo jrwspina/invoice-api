@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from app.enums import InvoiceStatus
 from app.models import Invoice
@@ -454,27 +455,51 @@ async def test_invoice_total_reflects_lineitems_correctly(
     sample_invoice = await make_invoice(sample_user, sample_client)
     auth_headers = await make_auth_headers(sample_user)
 
-    sample_lineitem_1 = await make_lineitem(sample_invoice)
+    sample_lineitem_1 = {
+        "description": "item_1",
+        "quantity": 1,
+        "unit_price": 100,
+    }
 
-    expected_total = sample_lineitem_1.unit_price * sample_lineitem_1.quantity
+    sample_lineitem_2 = {
+        "description": "item_2",
+        "quantity": 2,
+        "unit_price": 300,
+    }
+
+    expected_total = sample_lineitem_1["unit_price"] * sample_lineitem_1["quantity"]
+
+    response = await client.post(
+        f"/invoices/{sample_invoice.id}/lineitems",
+        json=sample_lineitem_1,
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
 
     response = await client.get(
         f"/invoices/{sample_invoice.id}",
         headers=auth_headers,
     )
 
-    assert response.json()["total"] == str(expected_total)
+    assert Decimal(response.json()["total"]) == expected_total
 
-    sample_lineitem_2 = await make_lineitem(sample_invoice, quantity=2, unit_price=300)
+    response = await client.post(
+        f"/invoices/{sample_invoice.id}/lineitems",
+        json=sample_lineitem_2,
+        headers=auth_headers,
+    )
 
-    expected_total += sample_lineitem_2.unit_price * sample_lineitem_2.quantity
+    assert response.status_code == 200
+
+    expected_total += sample_lineitem_2["unit_price"] * sample_lineitem_2["quantity"]
 
     response = await client.get(
         f"/invoices/{sample_invoice.id}",
         headers=auth_headers,
     )
 
-    assert response.json()["total"] == str(expected_total)
+    assert Decimal(response.json()["total"]) == expected_total
 
 
 async def test_invoice_total_paid_without_payments_is_zero(
@@ -498,27 +523,54 @@ async def test_invoice_total_paid_reflects_payments_correctly(
 ):
     sample_user = await make_user()
     sample_client = await make_client(sample_user)
-    sample_invoice = await make_invoice(sample_user, sample_client)
+    sample_invoice = await make_invoice(
+        sample_user, sample_client, status=InvoiceStatus.SENT
+    )
     auth_headers = await make_auth_headers(sample_user)
 
-    sample_payment_1 = await make_payment(sample_invoice)
+    paid_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+    )
+    sample_payment_1 = {
+        "paid_at": paid_at,
+        "value": 100,
+    }
 
-    expected_total = sample_payment_1.value
+    sample_payment_2 = {
+        "paid_at": paid_at,
+        "value": 200,
+    }
+
+    expected_total = sample_payment_1["value"]
+
+    response = await client.post(
+        f"/invoices/{sample_invoice.id}/payments",
+        json=sample_payment_1,
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200
 
     response = await client.get(
         f"/invoices/{sample_invoice.id}",
         headers=auth_headers,
     )
 
-    assert response.json()["total_paid"] == str(expected_total)
+    assert Decimal(response.json()["total_paid"]) == expected_total
 
-    sample_payment_2 = await make_payment(sample_invoice, value=200)
+    response = await client.post(
+        f"/invoices/{sample_invoice.id}/payments",
+        json=sample_payment_2,
+        headers=auth_headers,
+    )
 
-    expected_total += sample_payment_2.value
+    assert response.status_code == 200
+
+    expected_total += sample_payment_2["value"]
 
     response = await client.get(
         f"/invoices/{sample_invoice.id}",
         headers=auth_headers,
     )
 
-    assert response.json()["total_paid"] == str(expected_total)
+    assert Decimal(response.json()["total_paid"]) == expected_total

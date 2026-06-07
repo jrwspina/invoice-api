@@ -56,8 +56,17 @@ def reset_rate_limiter():
     r = sync_redis.from_url(settings.redis_url)
     for key in r.scan_iter(match="LIMITER*"):
         r.delete(key)
+
+    for key in r.scan_iter(match="client:*"):
+        r.delete(key)
+    for key in r.scan_iter(match="invoice:*"):
+        r.delete(key)
     yield
     for key in r.scan_iter(match="LIMITER*"):
+        r.delete(key)
+    for key in r.scan_iter(match="client:*"):
+        r.delete(key)
+    for key in r.scan_iter(match="invoice:*"):
         r.delete(key)
 
 

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from typing import Annotated
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud import (
-    get_invoice as db_get_invoice,
+    get_invoice_nocache as db_get_invoice_nocache,
     get_lineitems as db_get_lineitems,
     get_lineitem as db_get_lineitem,
     create_lineitem as db_create_lineitem,
@@ -13,6 +14,7 @@ from app.database import get_db
 from app.dependencies import PaginationParams, get_current_user
 from app.limiter import limiter, get_user_key
 from app.models import User
+from app.redis import get_redis
 from app.schemas import LineItemRead, LineItemCreate
 
 router = APIRouter(
@@ -30,7 +32,7 @@ async def get_lineitems(
     user: Annotated[User, Depends(get_current_user)],
     pagination: Annotated[PaginationParams, Depends(PaginationParams)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -49,8 +51,9 @@ async def create_lineitem(
     payload: LineItemCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -58,7 +61,7 @@ async def create_lineitem(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    return await db_create_lineitem(invoice, payload, session)
+    return await db_create_lineitem(invoice, payload, session, redis)
 
 
 @router.delete("/{lineitem_id}")
@@ -69,8 +72,9 @@ async def delete_lineitem(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -88,5 +92,5 @@ async def delete_lineitem(
             status_code=403, detail="Invoice id does not match lineitem's invoice id"
         )
 
-    await db_delete_lineitem(lineitem, session)
+    await db_delete_lineitem(lineitem, session, redis)
     return Response(status_code=204)

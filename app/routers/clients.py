@@ -1,10 +1,13 @@
+from app.redis import get_redis
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from typing import Annotated
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud import (
     get_user_clients as db_get_user_clients,
     get_client as db_get_client,
+    get_client_nocache as db_get_client_nocache,
     create_client as db_create_client,
     update_client as db_update_client,
     patch_client as db_patch_client,
@@ -42,8 +45,9 @@ async def get_client(
     client_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    client = await db_get_client(client_id, session)
+    client = await db_get_client(client_id, session, redis)
 
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -73,8 +77,9 @@ async def update_client(
     payload: ClientUpdate,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    client = await db_get_client(client_id, session)
+    client = await db_get_client_nocache(client_id, session)
 
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -82,7 +87,7 @@ async def update_client(
     if client.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    return await db_update_client(client, payload, session)
+    return await db_update_client(client, payload, session, redis)
 
 
 @router.patch("/{client_id}", response_model=ClientRead)
@@ -93,8 +98,9 @@ async def patch_client(
     payload: ClientPatch,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    client = await db_get_client(client_id, session)
+    client = await db_get_client_nocache(client_id, session)
 
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -102,7 +108,7 @@ async def patch_client(
     if client.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    return await db_patch_client(client, payload, session)
+    return await db_patch_client(client, payload, session, redis)
 
 
 @router.delete("/{client_id}")
@@ -112,8 +118,9 @@ async def delete_client(
     client_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    client = await db_get_client(client_id, session)
+    client = await db_get_client_nocache(client_id, session)
 
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -121,6 +128,6 @@ async def delete_client(
     if client.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    await db_delete_client(client, session)
+    await db_delete_client(client, session, redis)
 
     return Response(status_code=204)

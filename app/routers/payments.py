@@ -1,16 +1,18 @@
-from app.enums import InvoiceStatus
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 
 from app.database import get_db
 from app.dependencies import PaginationParams, get_current_user
+from app.enums import InvoiceStatus
 from app.limiter import limiter, get_user_key
 from app.models import User
+from app.redis import get_redis
 from app.schemas import PaymentRead, PaymentCreate
 
 from app.crud import (
-    get_invoice as db_get_invoice,
+    get_invoice_nocache as db_get_invoice_nocache,
     get_payment as db_get_payment,
     get_invoice_payments as db_get_invoice_payments,
     create_payment as db_create_payment,
@@ -33,7 +35,7 @@ async def get_invoice_payments(
     user: Annotated[User, Depends(get_current_user)],
     pagination: Annotated[PaginationParams, Depends(PaginationParams)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -63,7 +65,7 @@ async def get_payment(
     if payment.invoice_id != invoice_id:
         raise HTTPException(status_code=400)
 
-    invoice = await db_get_invoice(payment.invoice_id, session)
+    invoice = await db_get_invoice_nocache(payment.invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -81,8 +83,9 @@ async def create_payment(
     payload: PaymentCreate,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -100,7 +103,7 @@ async def create_payment(
 
     await session.flush()
 
-    await db_update_invoice_status(invoice_id, session)
+    await db_update_invoice_status(invoice_id, session, redis)
 
     await session.commit()
     await session.refresh(payment)
@@ -115,13 +118,14 @@ async def delete_payment(
     payment_id: int,
     user: Annotated[User, Depends(get_current_user)],
     session: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
     payment = await db_get_payment(payment_id, session)
 
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
-    invoice = await db_get_invoice(payment.invoice_id, session)
+    invoice = await db_get_invoice_nocache(payment.invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -133,7 +137,7 @@ async def delete_payment(
 
     await session.flush()
 
-    await db_update_invoice_status(invoice.id, session)
+    await db_update_invoice_status(invoice.id, session, redis)
 
     await session.commit()
 

@@ -1,17 +1,19 @@
-from app.crud.users import get_user
+from app.redis import get_redis
 from app.tasks import send_invoice_email
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from typing import Annotated
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud import (
     get_invoices as db_get_invoices,
     get_invoice as db_get_invoice,
+    get_invoice_nocache as db_get_invoice_nocache,
     create_invoice as db_create_invoice,
     update_invoice as db_update_invoice,
     patch_invoice as db_patch_invoice,
     delete_invoice as db_delete_invoice,
-    get_client as db_get_client,
+    get_client_nocache as db_get_client_nocache,
     to_invoice_read,
     send_drafted_invoice as db_send_drafted_invoice,
 )
@@ -51,8 +53,9 @@ async def get_invoice(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice(invoice_id, session, redis)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -60,7 +63,7 @@ async def get_invoice(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    return to_invoice_read(invoice)
+    return invoice
 
 
 @router.post("", response_model=InvoiceRead)
@@ -71,7 +74,7 @@ async def create_invoice(
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
 ):
-    client = await db_get_client(invoice.client_id, session)
+    client = await db_get_client_nocache(invoice.client_id, session)
 
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
@@ -91,8 +94,9 @@ async def send_drafted_invoice(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -100,7 +104,7 @@ async def send_drafted_invoice(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    client = await db_get_client(invoice.client_id, session)
+    client = await db_get_client_nocache(invoice.client_id, session)
 
     if not client:
         raise HTTPException(status_code=400, detail="Invoice has no client")
@@ -108,7 +112,7 @@ async def send_drafted_invoice(
     if not client.billing_address:
         raise HTTPException(status_code=400, detail="Client has no billing address")
 
-    sent = await db_send_drafted_invoice(invoice, session)
+    sent = await db_send_drafted_invoice(invoice, session, redis)
 
     if not sent:
         raise HTTPException(status_code=400, detail="Invoice not in draft status")
@@ -128,8 +132,9 @@ async def update_invoice(
     payload: InvoiceUpdate,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -137,7 +142,7 @@ async def update_invoice(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    result = await db_update_invoice(invoice, payload, session)
+    result = await db_update_invoice(invoice, payload, session, redis)
     return to_invoice_read(result)
 
 
@@ -149,8 +154,9 @@ async def patch_invoice(
     payload: InvoicePatch,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -164,7 +170,7 @@ async def patch_invoice(
     if effective_due_date <= effective_issue_date:
         raise HTTPException(status_code=422, detail="due_date must be after issue_date")
 
-    result = await db_patch_invoice(invoice, payload, session)
+    result = await db_patch_invoice(invoice, payload, session, redis)
 
     return to_invoice_read(result)
 
@@ -176,8 +182,9 @@ async def delete_invoice(
     invoice_id: int,
     session: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis: Annotated[Redis, Depends(get_redis)],
 ):
-    invoice = await db_get_invoice(invoice_id, session)
+    invoice = await db_get_invoice_nocache(invoice_id, session)
 
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -185,6 +192,6 @@ async def delete_invoice(
     if invoice.user_id != user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    await db_delete_invoice(invoice, session)
+    await db_delete_invoice(invoice, session, redis)
 
     return Response(status_code=204)
