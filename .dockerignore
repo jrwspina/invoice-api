@@ -4,7 +4,6 @@ Dockerfile.dev
 .env
 .coverage
 .coveragerc
-requirements-dev.txt
 pytest.ini
 app/tests/
 .venv/
