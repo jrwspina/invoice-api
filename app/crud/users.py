@@ -1,3 +1,4 @@
+from fastapi.concurrency import run_in_threadpool
 from typing import Sequence
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,9 +16,9 @@ async def authenticate_user(
     user = await get_user_by_email(username, session)
 
     if not user:
-        verify_password(password, DUMMY_HASH)
+        await run_in_threadpool(verify_password, password, DUMMY_HASH)
         return None
-    if not verify_password(password, user.password_hash):
+    if not await run_in_threadpool(verify_password, password, user.password_hash):
         return None
     return user
 
@@ -38,7 +39,7 @@ async def get_user_by_email(user_email: str, session: AsyncSession) -> User | No
 
 async def create_user(user: UserCreate, session: AsyncSession) -> User:
     db_user = User(**user.model_dump(exclude={"password"}))
-    db_user.password_hash = get_password_hash(user.password)
+    db_user.password_hash = await run_in_threadpool(get_password_hash, user.password)
     session.add(db_user)
     return db_user
 
