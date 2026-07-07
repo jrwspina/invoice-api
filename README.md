@@ -1,6 +1,6 @@
 # Invoice Management API
 
-[![CI](https://github.com/jrwspina/invoice-api/actions/workflows/ci.yml/badge.svg)](https://github.com/jrwspina/invoice-api/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/jrwspina/invoice-api/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/jrwspina/invoice-api/actions/workflows/ci-cd.yml)
 
 REST API for managing clients, invoices, and payments. Async Python (FastAPI, SQLAlchemy 2.0, asyncpg) on PostgreSQL, with Celery background jobs, Redis caching and rate limiting, deployed on Render with Docker.
 
