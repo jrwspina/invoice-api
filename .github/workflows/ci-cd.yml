@@ -68,7 +68,7 @@ jobs:
       AWS_REGION: us-east-1
       ECR_REPOSITORY: invoice-api
       ECS_CLUSTER: invoice-api-cluster
-      ECS_SERVICE: invoice-api-service
+      ECS_SERVICE: invoice-api-task-service
 
     steps:
       - uses: actions/checkout@v4
