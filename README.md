@@ -1,8 +1,8 @@
 # Invoice Management API
 
-[![CI](https://github.com/jrwspina/invoice-api/actions/workflows/ci.yml/badge.svg)](https://github.com/jrwspina/invoice-api/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/jrwspina/invoice-api/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/jrwspina/invoice-api/actions/workflows/ci-cd.yml)
 
-REST API for managing clients, invoices, and payments. Async Python (FastAPI, SQLAlchemy 2.0, asyncpg) on PostgreSQL, with Celery background jobs, Redis caching and rate limiting, deployed on Render with Docker.
+REST API for managing clients, invoices, and payments. Async Python (FastAPI, SQLAlchemy 2.0, asyncpg) on PostgreSQL, with Celery background jobs, Redis caching and rate limiting, deployed on Render with Docker, with an AWS deployment (ECS Fargate, RDS, CI/CD) documented below.
 
 Live at **https://invoice-api-1ck2.onrender.com/docs**
 
@@ -58,8 +58,37 @@ docker compose up -d db test-db redis
 pytest --cov
 ```
 
-The test suite covers endpoints, auth, ownership, rate limiting, and cache behavior (94 tests, ~97% coverage).
+The test suite covers endpoints, auth, ownership, rate limiting, and cache behavior (95 tests, ~97% coverage).
 
-## Deployment
+## AWS Deployment
+
+Deployed to AWS using ECR for image storage, running on ECS Fargate (app + Redis sidecar) backed by RDS PostgreSQL and fronted by an ALB. Infrastructure is torn down between demos.
+
+### Typical request path
+
+```
+Internet -> ALB :80 -> app :8000 (ALB Security Group only) -> RDS :5432 (app Security Group only)
+```
+
+The ALB health-checks a liveness-only /health endpoint; no dependency checks, so a database outage degrades responses instead of triggering a restart cycle.
+
+### Deployment pipeline
+```
+push to main -> 95 tests -> image built (Dockerfile.prod) -> tagged sha + latest -> push to ECR -> new deployment forced on the ECS service -> waits for service stability; auto-rollback on failure.
+```
+
+This repository keeps no AWS secrets; each workflow run presents a GitHub-signed identity token to AWS STS and receives temporary credentials, via an IAM role whose trust policy only accepts this repo's main branch.
+
+### Known gaps
+
+- IP-keyed rate limiting behind the ALB collapses all anonymous users into one bucket (the app sees the ALB's IP). Authenticated routes key on username; fix for anonymous traffic is keying on X-Forwarded-For.
+
+- HTTP only; HTTPS deferred since it needs a domain for an ACM certificate; production would terminate TLS at the ALB with a 443 listener and redirect from 80.
+
+- Config and credentials live as plaintext env vars in the task definition; production would use Secrets Manager or SSM Parameter Store.
+
+- Backups + Multi-AZ off on RDS to keep costs minimal.
+
+## Render Deployment
 
 Render Blueprint (`render.yaml`) defines five services: the web app, a Celery worker, Celery beat, managed PostgreSQL, and managed Redis (Valkey). One production image serves all three process types, routed by a `MODE` env var in the entrypoint, since Render's Docker runtime has no per-service start commands. Migrations run in the entrypoint too, as the free tier has no pre-deploy hook.
