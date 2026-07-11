@@ -1,0 +1,85 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_ecr_repository" "api" {
+  name = "invoice-api"
+}
+
+resource "aws_cloudwatch_log_group" "ecs" {
+  name              = "/ecs/invoice-api-task"
+  retention_in_days = 7
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+resource "aws_security_group" "app" {
+  name        = "invoice-api-app-sg"
+  vpc_id      = data.aws_vpc.default.id
+  description = "APP: accepts HTTP from the ALB"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "app_from_alb" {
+  security_group_id            = aws_security_group.app.id
+  from_port                    = 8000
+  to_port                      = 8000
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.alb.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "app_all" {
+  security_group_id = aws_security_group.app.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_security_group" "alb" {
+  name        = "invoice-api-alb-sg"
+  vpc_id      = data.aws_vpc.default.id
+  description = "ALB: accepts HTTP from the internet"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb_from_all" {
+  security_group_id = aws_security_group.alb.id
+  ip_protocol       = "tcp"
+  from_port         = 80
+  to_port           = 80
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "alb_all" {
+  security_group_id = aws_security_group.alb.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_security_group" "rds" {
+  name        = "invoice-api-rds-sg"
+  vpc_id      = data.aws_vpc.default.id
+  description = "RDS: accepts PostgreSQL traffic from the app"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "rds_from_app" {
+  security_group_id            = aws_security_group.rds.id
+  ip_protocol                  = "tcp"
+  from_port                    = 5432
+  to_port                      = 5432
+  referenced_security_group_id = aws_security_group.app.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "rds_all" {
+  security_group_id = aws_security_group.rds.id
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+}
