@@ -83,3 +83,18 @@ resource "aws_vpc_security_group_egress_rule" "rds_all" {
   ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
 }
+
+resource "aws_db_instance" "rds_db" {
+  allocated_storage      = 20
+  db_name                = "invoiceapi"
+  identifier             = "invoice-api-db"
+  engine                 = "postgres"
+  engine_version         = "17"
+  instance_class         = "db.t4g.micro"
+  username               = "invoiceapi"
+  password               = var.db_password
+  skip_final_snapshot    = true
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  publicly_accessible    = false
+  multi_az               = false
+}
