@@ -98,3 +98,46 @@ resource "aws_db_instance" "rds_db" {
   publicly_accessible    = false
   multi_az               = false
 }
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+resource "aws_lb" "alb" {
+  name               = "invoice-api-alb"
+  load_balancer_type = "application"
+  internal           = false
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = data.aws_subnets.default.ids
+}
+
+resource "aws_lb_target_group" "api" {
+  name        = "invoice-api-tg"
+  port        = 8000
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
+  target_type = "ip"
+  health_check {
+    enabled             = true
+    matcher             = "200"
+    interval            = 15
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    protocol            = "HTTP"
+    path                = "/health"
+  }
+}
+
+resource "aws_lb_listener" "listener" {
+  port              = 80
+  load_balancer_arn = aws_lb.alb.arn
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+}
