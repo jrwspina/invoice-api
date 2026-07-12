@@ -13,6 +13,7 @@ provider "aws" {
 
 resource "aws_ecr_repository" "api" {
   name = "invoice-api"
+  force_delete = true
 }
 
 resource "aws_cloudwatch_log_group" "ecs" {
@@ -138,6 +139,89 @@ resource "aws_lb_listener" "listener" {
   protocol          = "HTTP"
   default_action {
     type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+}
+
+data "aws_iam_role" "ecs_execution" {
+  name = "ecsTaskExecutionRole"
+}
+
+resource "aws_ecs_cluster" "cluster" {
+  name = "invoice-api-cluster"
+}
+
+resource "aws_ecs_task_definition" "app" {
+  family                   = "invoice-api-task"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = data.aws_iam_role.ecs_execution.arn
+  container_definitions = jsonencode([
+    {
+      name         = "app"
+      image        = "${aws_ecr_repository.api.repository_url}:latest"
+      portMappings = [{ containerPort = 8000 }]
+      essential    = true
+      environment = [
+        {
+          name  = "POSTGRES_URL"
+          value = "postgresql+asyncpg://${aws_db_instance.rds_db.username}:${var.db_password}@${aws_db_instance.rds_db.address}:5432/${aws_db_instance.rds_db.db_name}"
+        },
+        {
+          name  = "SECRET_KEY"
+          value = var.secret_key
+        },
+        {
+          name  = "REDIS_URL"
+          value = "redis://localhost:6379/0"
+        },
+        {
+          name  = "MAIL_SERVER"
+          value = "mailserver"
+        },
+        {
+          name  = "MAIL_PORT"
+          value = "1025"
+        },
+        {
+          name  = "EMAIL_FROM"
+          value = "email@test.com"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.ecs.name
+          awslogs-region        = "us-east-1"
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    },
+    {
+      name         = "redis"
+      image        = "redis:7-alpine"
+      portMappings = [{ containerPort = 6379 }]
+      essential    = true
+    }
+  ])
+}
+
+resource "aws_ecs_service" "api" {
+  name            = "invoice-api-task-service"
+  cluster         = aws_ecs_cluster.cluster.id
+  task_definition = aws_ecs_task_definition.app.id
+  desired_count   = 1
+  launch_type     = "FARGATE"
+  network_configuration {
+    subnets          = data.aws_subnets.default.ids
+    security_groups  = [aws_security_group.app.id]
+    assign_public_ip = true
+  }
+  load_balancer {
+    container_name   = "app"
+    container_port   = 8000
     target_group_arn = aws_lb_target_group.api.arn
   }
 }
