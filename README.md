@@ -62,7 +62,7 @@ The test suite covers endpoints, auth, ownership, rate limiting, and cache behav
 
 ## AWS Deployment
 
-Deployed to AWS using ECR for image storage, running on ECS Fargate (app + Redis sidecar) backed by RDS PostgreSQL and fronted by an ALB. Infrastructure is torn down between demos.
+Deployed to AWS using ECR for image storage, running on ECS Fargate (app + Redis sidecar) backed by RDS PostgreSQL and fronted by an ALB. The infrastructure is fully codified in Terraform ([`infra/`](infra/)): `terraform apply` recreates the stack, `terraform destroy` removes it, so it runs on demand rather than 24/7.
 
 ### Typical request path
 
@@ -85,7 +85,7 @@ This repository keeps no AWS secrets; each workflow run presents a GitHub-signed
 
 - HTTP only; HTTPS deferred since it needs a domain for an ACM certificate; production would terminate TLS at the ALB with a 443 listener and redirect from 80.
 
-- Config and credentials live as plaintext env vars in the task definition; production would use Secrets Manager or SSM Parameter Store.
+- Config and credentials live as plaintext env vars in the task definition (injected via Terraform variables); production would use Secrets Manager or SSM Parameter Store.
 
 - Backups + Multi-AZ off on RDS to keep costs minimal.
 
