@@ -13,3 +13,5 @@ htmlcov/
 .git/
 *.db
 *.md
+.terraform/
+infra/
